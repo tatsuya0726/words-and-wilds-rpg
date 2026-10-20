@@ -35,6 +35,13 @@ function cast(state,question,index,spell){
  b.result={right,base,amount,kind:spell.kind,selected:index};b.phase='result';
  return b.result;
 }
+function enemyTurn(state){
+ const b=state.battle;
+ if(!b||b.phase!=='result'||b.enemyHP<=0||b.hp<=0)return null;
+ b.hp=Math.max(0,b.hp-b.attack);b.turn++;
+ b.phase=b.hp<=0?'lost':'choose';
+ return {amount:b.attack};
+}
 function reward(state){
  const b=state.battle;if(!b||b.enemyHP>0||b.rewarded)return false;
  b.rewarded=true;state.dust+=2;
@@ -57,6 +64,6 @@ function valid(s){
  if(b.phase==='result'&&(!b.result||typeof b.result.right!=='boolean'||![b.result.base,b.result.amount].every(Number.isFinite)))return false;
  return true;
 }
-const api={LEVELS,SPELLS,fresh,pool,pick,effect,maxHP,cast,reward,breed,valid};
+const api={LEVELS,SPELLS,fresh,pool,pick,effect,maxHP,cast,enemyTurn,reward,breed,valid};
 if(typeof module!=='undefined')module.exports=api;else root.Rules=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

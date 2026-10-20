@@ -105,7 +105,7 @@ function startBattle(index){
 }
 function battle(){
  clearScene();header();const b=state.battle,r=REGIONS[state.region],m=member();if(!b)return region();
- $('#scene').innerHTML=`<section class="battle" style="background-image:url('${ASSETS[r.bg].img}')"><div class="arena"><div class="battle-top"><div class="health">${ASSETS[m.id].name} · Lv.${m.level}<progress value="${b.hp}" max="${Rules.maxHP(m)}"></progress><span>HP ${b.hp} / ${Rules.maxHP(m)}</span></div><div class="health">${ASSETS[b.enemy].name}<progress value="${b.enemyHP}" max="${b.enemyMax}"></progress><span>HP ${b.enemyHP} / ${b.enemyMax}</span></div></div>${image(m.id,'sprite ally')}${image(b.enemy,'sprite enemy')}<div class="battle-log" role="status">${E(b.log)}</div></div><div class="battle-panel" id="commands"></div></section>`;
+ $('#scene').innerHTML=`<section class="battle" style="background-image:url('${ASSETS[r.bg].img}')"><div class="arena"><div class="battle-top"><div class="health">${ASSETS[m.id].name} · Lv.${m.level}<progress value="${b.hp}" max="${Rules.maxHP(m)}"></progress><span>HP ${b.hp} / ${Rules.maxHP(m)}</span></div><div class="health">${ASSETS[b.enemy].name}<progress value="${b.enemyHP}" max="${b.enemyMax}"></progress><span>HP ${b.enemyHP} / ${b.enemyMax}</span></div></div>${image(m.id,'sprite ally')}${image(b.enemy,'sprite enemy'+(b.enemyHP<=0?' defeated':''))}<div class="battle-log" role="status">${E(b.log)}</div></div><div class="battle-panel" id="commands"></div></section>`;
  const panel=$('#commands');
  if(b.phase==='choose'){
   panel.innerHTML=`<div class="eyebrow">SPELLBOOK / ${state.band}</div><h2>どの言葉を唱える？</h2><p class="muted">威力が高いほど、同じ学習帯の難しい問題。</p>${Rules.SPELLS.map(s=>btn(`${s.name}<span>${s.en} · ${s.kind==='heal'?'回復':'威力'} ${s.power+(m.level-1)*4} · ${{basic:'基礎',standard:'標準',challenge:'挑戦'}[s.difficulty]}</span>`,'spell',s.id,'spell')).join('')}${btn('退却する','retreat')}`;
@@ -122,8 +122,16 @@ function battle(){
  }
 }
 function spell(id){const b=state.battle;if(!b||b.phase!=='choose')return;const s=Rules.SPELLS.find(s=>s.id===id);b.spell=id;b.questionId=Rules.pick(QUESTIONS,state,s.difficulty).id;b.phase='question';save();battle();}
-function answer(index){const b=state.battle;if(!b||b.phase!=='question')return;const q=QUESTIONS.find(q=>q.id===b.questionId),s=Rules.SPELLS.find(s=>s.id===b.spell);Rules.cast(state,q,index,s);save();battle();}
-function nextTurn(){const b=state.battle;if(!b||b.phase!=='result')return;if(b.enemyHP<=0){Rules.reward(state);}else{b.hp=Math.max(0,b.hp-b.attack);b.turn++;b.log=`${ASSETS[b.enemy].name}の「木霊の呪文」！ ${b.attack}ダメージ。`;b.phase=b.hp<=0?'lost':'choose';}save();battle();}
+function answer(index){if(combatAnimating)return;const b=state.battle;if(!b||b.phase!=='question')return;const q=QUESTIONS.find(q=>q.id===b.questionId),s=Rules.SPELLS.find(s=>s.id===b.spell);const result=Rules.cast(state,q,index,s);if(!result)return;save();playCombat({spell:s.id,kind:s.kind,amount:result.amount,weak:!result.right,enemy:false,defeated:b.enemyHP<=0});}
+function nextTurn(){
+ if(combatAnimating)return;
+ const b=state.battle;if(!b||b.phase!=='result')return;
+ if(b.enemyHP<=0){Rules.reward(state);save();battle();return;}
+ const hit=Rules.enemyTurn(state);
+ if(!hit)return;
+ b.log=`${ASSETS[b.enemy].name}の「木霊の呪文」！ ${hit.amount}ダメージ。`;
+ save();playCombat({spell:'echo',kind:'damage',amount:hit.amount,enemy:true,defeated:b.hp<=0});
+}
 function finish(){state.battle=null;state.view='region';save();region();}
 function card(id,extra=''){return `<article class="card">${image(id)}<h3>${ASSETS[id].name}</h3>${extra}</article>`;}
 function roster(){
@@ -143,10 +151,72 @@ function exportSave(){
  a.href=url;a.download='words-wilds-save.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 function help(){modal(`<div class="eyebrow">FIELD NOTES</div><h2>旅の手引き</h2><p>① 草原の町から、明るいマスをタップ。分岐を自由に選び、周回して道を開きます。赤い山は最初から入れますが強敵です。</p><p>② 呪文を選び、英語問題に答えます。味方の攻撃・回復はすべて呪文。正解100%、不正解50%。相手も呪文で反撃します。</p><p>③ 勝つと仲間・経験・星砂。配合工房で固定レシピの仲間を迎えます。</p><p>④ 草原の坑道から地下、森の階段から空中へ。試作は地上3＋地下1＋空中1、計35マスです。背景の地下・空中専用素材、全18配合、技継承、BGMは未実装です。</p><p>学習問題370問を搭載。キキ・ネネの町会話は別の自由会話です。設定から保存を持ち出せます。</p>${btn('旅に戻る','close','','primary')}`);}
+
+// Effects are presentation only. Rules/save commit once before the visual sequence.
+let combatAnimating=false;
+async function playCombat(hit){
+ if(combatAnimating)return;
+ combatAnimating=true;
+ const arena=$('.arena'),commands=$('#commands');
+ if(!arena){combatAnimating=false;battle();return;}
+ const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+ const source=arena.querySelector(hit.enemy?'.enemy':'.ally');
+ const target=arena.querySelector(hit.kind==='heal'?'.ally':hit.enemy?'.ally':'.enemy');
+ const base=arena.getBoundingClientRect(),sr=source.getBoundingClientRect(),tr=target.getBoundingClientRect();
+ const from={x:sr.left-base.left+sr.width*.5,y:sr.top-base.top+sr.height*.48};
+ const to={x:tr.left-base.left+tr.width*.5,y:tr.top-base.top+tr.height*.48};
+ commands.inert=true;commands.setAttribute('aria-busy','true');
+ commands.querySelectorAll('button').forEach(b=>b.disabled=true);
+ const layer=document.createElement('div');layer.className='combat-fx '+hit.spell+(hit.weak?' weak':'');layer.setAttribute('aria-hidden','true');arena.appendChild(layer);
+ const log=arena.querySelector('.battle-log');
+ log.textContent=hit.kind==='heal'?'いやしの露が仲間を包む…':hit.enemy?'相手が呪文を唱えている…':'呪文が相手へ向かう…';
+ const animations=[];
+ const motion=async(el,frames,duration)=>{
+  const a=el.animate(reduced?[{opacity:1},{opacity:1}]:frames,{duration:reduced?160:duration,easing:'ease-out',fill:'forwards'});animations.push(a);
+  try{await a.finished;}catch{}
+ };
+ const mote=(cls,x,y,text='')=>{const e=document.createElement('span');e.className=cls;e.style.left=x+'px';e.style.top=y+'px';e.textContent=text;layer.appendChild(e);return e;};
+ try{
+  const aura=mote('cast-aura',from.x,from.y);
+  source.classList.add('casting');
+  await Promise.all([
+   motion(aura,[{opacity:0,scale:'.5'},{opacity:1,scale:'1.15'},{opacity:0,scale:'1.35'}],250),
+   reduced?Promise.resolve():motion(source,[{translate:'0 0'},{translate:(hit.enemy?'12px':'-8px')+' 0'},{translate:(hit.enemy?'-18px':'10px')+' -3px'},{translate:'0 0'}],380)
+  ]);
+  source.classList.remove('casting');
+  if(hit.kind!=='heal'){
+   const orb=mote('spell-projectile',from.x,from.y,hit.spell==='star'?'✦':hit.spell==='wind'?'◌':'');
+   await motion(orb,[{translate:'0 0',opacity:1},{translate:(to.x-from.x)+'px '+(to.y-from.y)+'px',opacity:1}],reduced?90:hit.spell==='wind'?340:300);
+   orb.remove();
+  }
+  const b=state.battle,health=arena.querySelectorAll('.health');
+  health[0].querySelector('progress').value=b.hp;health[0].querySelector('span').textContent='HP '+b.hp+' / '+Rules.maxHP(member());
+  health[1].querySelector('progress').value=b.enemyHP;health[1].querySelector('span').textContent='HP '+b.enemyHP+' / '+b.enemyMax;
+  const ring=mote(hit.kind==='heal'?'heal-bloom':'impact-ring',to.x,to.y,hit.kind==='heal'?'✧':'');
+  const number=mote('effect-number '+(hit.kind==='heal'?'healing':''),to.x,to.y-30,(hit.kind==='heal'?'+':'−')+hit.amount);
+  const note=mote('effect-caption',to.x,to.y+10,hit.weak?'50%':hit.enemy?'木霊の呪文':'100%');
+  if(hit.kind!=='heal'){
+   target.classList.add('receiving-hit');
+   if(!reduced){for(let i=0;i<6;i++){const p=mote('hit-spark',to.x,to.y);const angle=i*Math.PI/3;
+    motion(p,[{translate:'0 0',opacity:1},{translate:Math.cos(angle)*48+'px '+Math.sin(angle)*40+'px',opacity:0}],390);}}
+  }
+  log.textContent=hit.kind==='heal'?'回復 '+hit.amount+(hit.weak?'（50%）':'（100%）'):hit.enemy?'仲間に '+hit.amount+' ダメージ':'相手に '+hit.amount+' ダメージ'+(hit.weak?'（50%）':'（100%）');
+  await Promise.all([
+   motion(ring,[{opacity:1,scale:'.5'},{opacity:0,scale:'1.8'}],500),
+   motion(number,[{opacity:0,translate:'0 8px'},{opacity:1,offset:.18,translate:'0 -8px'},{opacity:1,offset:.8,translate:'0 -24px'},{opacity:0,translate:'0 -30px'}],850),
+   motion(note,[{opacity:1},{opacity:0}],850),
+   reduced||hit.kind==='heal'?Promise.resolve():motion(target,[{opacity:1,translate:'0 0'},{opacity:.35,translate:(hit.enemy?'-10px':'10px')+' 0',offset:.25},{opacity:1,translate:'0 0',offset:.55},{opacity:.6,offset:.7},{opacity:1,translate:'0 0'}],360)
+  ]);
+  if(hit.defeated)await motion(target,[{opacity:1},{opacity:.2}],240);
+ }finally{
+  animations.forEach(a=>a.cancel());source.classList.remove('casting');target.classList.remove('receiving-hit');layer.remove();
+  combatAnimating=false;battle();
+ }
+}
 document.addEventListener('click',event=>{
  const el=event.target.closest('[data-action]');if(!el||el.disabled)return;const a=el.dataset.action,x=el.dataset.arg;
  if(opening&&['tapBegin','startJourney'].includes(a)){if(a==='tapBegin')showTitle();else beginJourney();return;}
- if(opening)return;
+ if(opening||combatAnimating)return;
  if(state.battle&&!['spell','answer','continue','finish','retreat'].includes(a))return;
  if(a==='world')world();else if(a==='layer'){state.layer=x;world();}
  else if(a==='region')region(x);else if(a==='node')node(Number(x));

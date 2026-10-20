@@ -50,3 +50,25 @@
  .opening-start p{margin:9px 0 0;font-size:10px}
 }
 @media(prefers-reduced-motion:reduce){#opening,#opening-title{transition:none;animation:none}}
+
+/* Local, bounded battle effects; no full-screen flash or layout movement. */
+.combat-fx{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:5;--spell:#ffe48a}
+.combat-fx.wind{--spell:#9cf4ce}.combat-fx.star{--spell:#d6bbff}.combat-fx.echo{--spell:#ffb39a}.combat-fx.heal{--spell:#87edc9}
+.combat-fx>span{position:absolute;display:block;transform:translate(-50%,-50%);color:var(--spell)}
+.cast-aura,.impact-ring,.heal-bloom{width:88px;height:88px;border:3px solid var(--spell);border-radius:50%;box-shadow:0 0 20px var(--spell)}
+.heal-bloom{font-size:64px;line-height:80px;text-align:center;background:#86efb722}
+.spell-projectile{width:24px;height:24px;border-radius:50%;background:var(--spell);box-shadow:0 0 16px var(--spell),-12px 0 18px var(--spell)}
+.wind .spell-projectile{width:58px;height:58px;background:transparent;border:4px solid var(--spell);font-size:45px;line-height:45px;text-align:center}
+.star .spell-projectile{background:transparent;font-size:52px;line-height:24px;box-shadow:none;text-shadow:0 0 18px var(--spell)}
+.weak .spell-projectile{filter:saturate(.6);scale:.8}
+.hit-spark{width:8px;height:5px;border-radius:3px;background:var(--spell)}
+.effect-number{font:900 clamp(29px,5vw,46px)/1 system-ui,sans-serif!important;color:#fff4d5!important;text-shadow:0 3px 0 #4c2522,2px 0 0 #4c2522,-2px 0 0 #4c2522;white-space:nowrap}
+.effect-number.healing{color:#a8ffcd!important;text-shadow:0 3px 0 #123f35,2px 0 0 #123f35,-2px 0 0 #123f35}
+.effect-caption{font:bold 12px/1.2 system-ui,sans-serif!important;background:#0b1c26e8;padding:4px 8px;border-radius:12px;white-space:nowrap}
+.casting{filter:drop-shadow(0 0 12px #ffe6a7)}
+.receiving-hit{filter:drop-shadow(0 0 8px #ffdbb2)}
+.battle-panel[aria-busy=true]{opacity:.7}
+.battle-panel button:disabled{cursor:wait}
+@media(prefers-reduced-motion:reduce){.casting,.receiving-hit{filter:none}.combat-fx .hit-spark{display:none}}
+
+.sprite.enemy.defeated{opacity:.25;filter:grayscale(.6)}
