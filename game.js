@@ -31,6 +31,7 @@ const btn=(text,action,arg='',cls='')=>`<button class="${cls}" data-action="${ac
 const image=(id,cls='')=>`<img class="${cls}" src="${ASSETS[id].img}" alt="${E(ASSETS[id].name||id)}">`;
 const member=()=>state.party.find(m=>m.id===state.active);
 function header(){
+ document.body.classList.toggle("in-battle",!!state.battle);
  $('#status').textContent=`${state.band} · 星砂 ${state.dust} · 仲間 ${state.party.length}`;
  document.querySelectorAll('header button').forEach(b=>b.disabled=!!state.battle);
  $('#hint').textContent=state.battle?'正解で100%、不正解でも50%。間違えても呪文は届く。':'明るいマスをタップして探索。強敵からはいつでも退却できます。';
@@ -51,7 +52,7 @@ function paintPhaser(region){
    this.layout=()=>{
     const w=this.scale.width,h=this.scale.height;
     this.back.setPosition(w/2,h/2);
-    const scale=Math.max(w/this.back.width,h/this.back.height);this.back.setScale(scale);
+    const scale=Math.min(w/this.back.width,h/this.back.height);this.back.setScale(scale);
     this.back.setTint(region.layer==='below'?0x789baa:region.layer==='sky'?0xd9eaff:0xffffff);
     this.paths.clear().lineStyle(2,0xf5dc9d,.7);
     region.edges.forEach(([a,b])=>{const p=region.nodes[a],q=region.nodes[b];this.paths.lineBetween(w*p[2]/100,h*p[3]/100,w*q[2]/100,h*q[3]/100);});
@@ -68,13 +69,15 @@ function world(preview=false){
  clearScene();if(!preview){state.view='world';save();}header();
  const layer=state.layer||'ground';const coords={grass:[38,67],forest:[66,44],volcano:[81,75],cave:[56,66],sky:[59,56]};
  $('#scene').innerHTML=`<section class="map world-map ${layer}">${image('world')}<div class="intro"><div class="eyebrow">WORDS & WILDS</div><h1>ごちゃまぜ<br>モンスター</h1><p>ひとつの言葉が、<br>まだ見ぬ仲間への道になる。</p><span class="pill">小さな旅の試作 · 5エリア</span></div><div class="layer-tabs" aria-label="世界の層">${[['ground','地上'],['below','地下'],['sky','空中']].map(([id,label])=>btn(label,'layer',id,layer===id?'primary':'')).join('')}</div>${Object.entries(REGIONS).filter(([,r])=>r.layer===layer).map(([id,r])=>`<button class="node ${r.danger?'danger':''}" style="left:${coords[id][0]}%;top:${coords[id][1]}%" data-action="region" data-arg="${id}" ${unlockedRegion(id)?'':'disabled'}><strong>${r.name}</strong><small>${unlockedRegion(id)?r.danger?'強敵 Lv.6目安 / 初めから挑戦可':'探索する':id==='cave'?'草原の坑道から解放':'森の階段から解放'}</small></button>`).join('')}<div class="map-note">地上3・地下1・空中1の試作区画<br>地下と空中の背景は既存素材を仮使用</div><div class="map-actions">${btn('町でひと休み','town')}${btn('旅の手引き','help')}</div></section>`;
+ tidyMap(true);
 }
+
 function accessible(id,index){if(index===0)return true;return REGIONS[id].edges.some(([a,b])=>(a===index&&state.cleared.includes(`${id}:${b}`))||(b===index&&state.cleared.includes(`${id}:${a}`)));}
 function region(id=state.region){
  if(!REGIONS[id]||!unlockedRegion(id))return;
  clearScene();state.region=id;state.layer=REGIONS[id].layer;state.view='region';save();header();const r=REGIONS[id];
  $('#scene').innerHTML=`<section class="map region ${r.layer}"><div id="map-canvas" aria-hidden="true"></div><div class="region-title"><div class="eyebrow">${r.sub}</div><h2>${r.name}</h2><small>${state.cleared.filter(k=>k.startsWith(id+':')).length} / ${r.nodes.length} マス探索済み</small></div>${r.nodes.map((n,i)=>{const done=state.cleared.includes(`${id}:${i}`),open=accessible(id,i);return `<button class="node ${done?'done':''} ${n[1]==='boss'?'danger':''}" style="left:${n[2]}%;top:${n[3]}%" data-action="node" data-arg="${i}" ${open?'':'disabled'}><strong>${open?n[0]:'？'}</strong><small>${!open?'隣のマスを探索':done?'✓ 探索済み':({town:'英語で会話・回復',battle:'呪文バトル',rest:'休憩・道を開く',treasure:'星砂を拾う',gate:'次のエリアへ',boss:'強敵バトル',talk:'ネネとの会話'}[n[1]])}</small></button>`;}).join('')}<div class="map-actions">${btn('← ワールド','world')}</div></section>`;
- paintPhaser(r);
+ tidyMap(false);paintPhaser(r);
 }
 function mark(index){const k=`${state.region}:${index}`;if(!state.cleared.includes(k))state.cleared.push(k);save();}
 function node(index){
@@ -105,22 +108,25 @@ function startBattle(index){
 }
 function battle(){
  clearScene();header();const b=state.battle,r=REGIONS[state.region],m=member();if(!b)return region();
- $('#scene').innerHTML=`<section class="battle" style="background-image:url('${ASSETS[r.bg].img}')"><div class="arena"><div class="battle-top"><div class="health">${ASSETS[m.id].name} · Lv.${m.level}<progress value="${b.hp}" max="${Rules.maxHP(m)}"></progress><span>HP ${b.hp} / ${Rules.maxHP(m)}</span></div><div class="health">${ASSETS[b.enemy].name}<progress value="${b.enemyHP}" max="${b.enemyMax}"></progress><span>HP ${b.enemyHP} / ${b.enemyMax}</span></div></div>${image(m.id,'sprite ally')}${image(b.enemy,'sprite enemy'+(b.enemyHP<=0?' defeated':''))}<div class="battle-log" role="status">${E(b.log)}</div></div><div class="battle-panel" id="commands"></div></section>`;
+ $('#scene').innerHTML=`<section class="battle" style="--battle-art:url('${ASSETS[r.bg].img}')"><div class="arena"><div class="battle-top"><div class="health">${ASSETS[m.id].name} · Lv.${m.level}<progress value="${b.hp}" max="${Rules.maxHP(m)}"></progress><span>HP ${b.hp} / ${Rules.maxHP(m)}</span></div><div class="health">${ASSETS[b.enemy].name}<progress value="${b.enemyHP}" max="${b.enemyMax}"></progress><span>HP ${b.enemyHP} / ${b.enemyMax}</span></div></div>${image(m.id,'sprite ally')}${image(b.enemy,'sprite enemy'+(b.enemyHP<=0?' defeated':''))}<div class="battle-log" role="status">${E(b.log)}</div></div><div class="battle-panel" id="commands"></div></section>`;
  const panel=$('#commands');
+ const title=Rules.SPELLS.find(s=>s.id===b.spell);
+ const head=(name)=>`<div class="command-heading"><h2>${name}</h2>${btn('詳細','combatInfo','','quiet')}</div>`;
  if(b.phase==='choose'){
-  panel.innerHTML=`<div class="eyebrow">SPELLBOOK / ${state.band}</div><h2>どの言葉を唱える？</h2><p class="muted">威力が高いほど、同じ学習帯の難しい問題。</p>${Rules.SPELLS.map(s=>btn(`${s.name}<span>${s.en} · ${s.kind==='heal'?'回復':'威力'} ${s.power+(m.level-1)*4} · ${{basic:'基礎',standard:'標準',challenge:'挑戦'}[s.difficulty]}</span>`,'spell',s.id,'spell')).join('')}${btn('退却する','retreat')}`;
+  panel.innerHTML=head('呪文を選ぶ')+`<div class="spell-grid">${Rules.SPELLS.map(s=>btn(`${s.name}<span>${s.kind==='heal'?'回復':'威力'} ${s.power+(m.level-1)*4} · ${{basic:'基礎',standard:'標準',challenge:'挑戦'}[s.difficulty]}</span>`,'spell',s.id,'spell')).join('')}</div><div class="command-bottom"><small>${state.band} · MP消費なし</small>${btn('退却','retreat','','quiet')}</div>`;
  }else if(b.phase==='question'){
   const q=QUESTIONS.find(q=>q.id===b.questionId);
-  panel.innerHTML=`<div class="eyebrow">${state.band} / ${q.id}</div><h2>${Rules.SPELLS.find(s=>s.id===b.spell).name}</h2><p class="cue">${E(q.cue_ja)}</p><div class="question" lang="en">${E(q.prompt_en)}</div><div class="choices">${q.options.map((o,i)=>btn(E(o),'answer',i)).join('')}</div><p class="muted quiz-rule">正解100%・不正解50% / 答えるまで解説は表示しません</p>${btn('退却する','retreat')}`;
+  panel.innerHTML=head(title.name)+`<p class="cue">${E(q.cue_ja)}</p><div class="question" lang="en">${E(q.prompt_en)}</div><div class="choices">${q.options.map((o,i)=>btn(E(o),'answer',i)).join('')}</div><div class="command-bottom"><small>正解100% / 不正解50%</small>${btn('退却','retreat','','quiet')}</div>`;
  }else if(b.phase==='result'){
   const q=QUESTIONS.find(q=>q.id===b.questionId),a=b.result;
-  panel.innerHTML=`<div class="eyebrow">SPELL CAST</div><h2>${a.right?'言葉が響いた！':'呪文は届いた！'}</h2><div class="result ${a.right?'':'wrong'}"><strong>${a.right?'100%':'50%'} の効果 · ${a.kind==='heal'?'回復':'ダメージ'} ${a.amount}</strong><p>基準 ${a.base} × ${a.right?'1.0':'0.5'}</p></div><p>正解：<strong lang="en">${E(q.answer)}</strong></p><p>${E(q.explanation_ja)}</p>${btn(b.enemyHP<=0?'勝利の報酬へ':'相手のターンへ','continue','','primary')}`;
+  panel.innerHTML=head(a.right?'正解！':'呪文は届いた！')+`<div class="result ${a.right?'':'wrong'}"><strong>${a.kind==='heal'?'回復':'ダメージ'} ${a.amount}</strong><span>${a.right?'100%':'50%'} の効果</span></div><p class="answer-line">正解：<strong lang="en">${E(q.answer)}</strong></p><div class="command-bottom">${btn('解説','combatInfo','','quiet')}${btn(b.enemyHP<=0?'勝利の報酬へ':'相手のターンへ','continue','','primary')}</div>`;
  }else if(b.phase==='won'){
-  panel.innerHTML=`<div class="eyebrow">VICTORY</div><h2>新しい道が開いた。</h2><p>${ASSETS[b.enemy].name}と心が通じました。</p><div class="result">星砂 +2 / 経験値 +2<br>${ASSETS[m.id].name} Lv.${m.level}</div><p class="muted">未加入の魔獣は仲間になります。加入済みなら経験を重ねます。</p>${btn('探索を続ける','finish','','primary')}`;
+  panel.innerHTML=head('勝利！')+`<div class="result"><strong>星砂 +2 · 経験値 +2</strong><span>${ASSETS[m.id].name} Lv.${m.level}</span></div><p>${ASSETS[b.enemy].name}と心が通じました。</p>${btn('探索を続ける','finish','','primary')}`;
  }else if(b.phase==='lost'){
-  panel.innerHTML=`<div class="eyebrow">TAKE A BREATH</div><h2>今日はひと休み。</h2><p>仲間や星砂は失いません。草原で育ててから戻りましょう。</p>${btn('入口へ戻る','finish','','primary')}`;
+  panel.innerHTML=head('ひと休みしよう')+`<p>仲間も星砂も失いません。</p>${btn('探索へ戻る','finish','','primary')}`;
  }
 }
+
 function spell(id){const b=state.battle;if(!b||b.phase!=='choose')return;const s=Rules.SPELLS.find(s=>s.id===id);b.spell=id;b.questionId=Rules.pick(QUESTIONS,state,s.difficulty).id;b.phase='question';save();battle();}
 function answer(index){if(combatAnimating)return;const b=state.battle;if(!b||b.phase!=='question')return;const q=QUESTIONS.find(q=>q.id===b.questionId),s=Rules.SPELLS.find(s=>s.id===b.spell);const result=Rules.cast(state,q,index,s);if(!result)return;save();playCombat({spell:s.id,kind:s.kind,amount:result.amount,weak:!result.right,enemy:false,defeated:b.enemyHP<=0});}
 function nextTurn(){
@@ -217,7 +223,10 @@ document.addEventListener('click',event=>{
  const el=event.target.closest('[data-action]');if(!el||el.disabled)return;const a=el.dataset.action,x=el.dataset.arg;
  if(opening&&['tapBegin','startJourney'].includes(a)){if(a==='tapBegin')showTitle();else beginJourney();return;}
  if(opening||combatAnimating)return;
- if(state.battle&&!['spell','answer','continue','finish','retreat'].includes(a))return;
+ if(state.battle&&!['spell','answer','continue','finish','retreat','combatInfo','close'].includes(a))return;
+ if(a==='combatInfo'){combatInfo();return;}
+ if(a==='selectMap'){selectMap(x);return;}
+ if(a==='enterMap'){enterMap();return;}
  if(a==='world')world();else if(a==='layer'){state.layer=x;world();}
  else if(a==='region')region(x);else if(a==='node')node(Number(x));
  else if(a==='town')town();else if(a==='talk')talk(x);else if(a==='translate'){translated=!translated;showTalk();}
@@ -273,5 +282,58 @@ function openingScreen(){
  $('#scene').appendChild(overlay);
  $('#tap-gate').focus();
 }
+fitScreen();
 openingScreen();
 
+
+// The frame fits the visible viewport; controls remain in normal, unscaled DOM coordinates.
+function fitScreen(){
+ const v=window.visualViewport,style=getComputedStyle(document.body),pad=n=>parseFloat(style[n])||0;
+ const availableW=(v?v.width:innerWidth)-pad('paddingLeft')-pad('paddingRight')-12;
+ const availableH=(v?v.height:innerHeight)-pad('paddingTop')-pad('paddingBottom')-12;
+ const portrait=availableH>availableW,ratio=portrait?9/16:16/9;
+ const width=Math.min(availableW,availableH*ratio,portrait?480:1440),height=width/ratio;
+ const app=$('#app');app.style.width=width+'px';app.style.height=height+'px';
+ app.style.left=((v?v.offsetLeft:0)+pad('paddingLeft')+(availableW+12-width)/2)+'px';
+ app.style.top=((v?v.offsetTop:0)+pad('paddingTop')+(availableH+12-height)/2)+'px';
+ document.documentElement.style.setProperty('--frame-height',height+'px');
+ document.documentElement.style.setProperty('--frame-width',width+'px');
+ app.classList.toggle('portrait-frame',portrait);
+}
+window.addEventListener('resize',fitScreen);window.visualViewport?.addEventListener('resize',fitScreen);window.visualViewport?.addEventListener('scroll',fitScreen);
+var selectedMap;
+function tidyMap(isWorld){
+ selectedMap=null;
+ const map=$('.map');if(!map)return;
+ map.querySelectorAll('.intro,.region-title,.map-note').forEach(e=>e.remove());
+ const name=isWorld?'ワールドマップ':REGIONS[state.region].name;
+ const strip=document.createElement('div');strip.className='map-info';
+ strip.innerHTML=`<div><small>${isWorld?'地上・地下・空中':REGIONS[state.region].sub}</small><h1>${name}</h1></div><div id="place-name" aria-live="polite">マスを選んでください</div>`;
+ map.appendChild(strip);
+ const field=document.createElement('div');field.className='node-field';
+ if(!isWorld){const canvas=$('#map-canvas');field.appendChild(canvas);}
+ map.querySelectorAll('.node').forEach((n,i)=>{
+  const oldAction=n.dataset.action,id=n.dataset.arg,disabled=n.disabled,done=n.classList.contains('done');
+  const label=oldAction==='region'?REGIONS[id].name:REGIONS[state.region].nodes[Number(id)][0];
+  n.dataset.destination=oldAction;n.dataset.action='selectMap';n.dataset.arg=id;
+  n.setAttribute('aria-label',disabled?'未解放のマス':label);n.title=disabled?'未解放':label;
+  n.innerHTML=`<span aria-hidden="true">${disabled?'·':done?'✓':n.classList.contains('danger')?'!':'◇'}</span>`;
+  field.appendChild(n);
+ });
+ map.appendChild(field);
+ const controls=document.createElement('div');controls.className='map-selection';controls.innerHTML=btn('選択した場所へ','enterMap','','primary');controls.firstElementChild.disabled=true;map.appendChild(controls);
+}
+function selectMap(id){
+ const n=Array.from(document.querySelectorAll('.node')).find(e=>e.dataset.arg===id);if(!n||n.disabled)return;
+ document.querySelectorAll('.node').forEach(e=>{e.classList.remove('selected');e.setAttribute('aria-pressed','false');});n.classList.add('selected');n.setAttribute('aria-pressed','true');
+ selectedMap={type:n.dataset.destination,id};
+ const label=selectedMap.type==='region'?REGIONS[id].name:REGIONS[state.region].nodes[Number(id)][0];
+ $('#place-name').textContent=label+(n.classList.contains('danger')?' · 強敵注意':'');
+ const go=$('[data-action="enterMap"]');go.disabled=false;go.textContent=selectedMap.type==='region'?'このエリアへ':'このマスへ';
+}
+function enterMap(){if(!selectedMap)return;const pick=selectedMap;selectedMap=null;if(pick.type==='region')region(pick.id);else node(Number(pick.id));}
+function combatInfo(){
+ const b=state.battle;if(!b)return;
+ const q=b.phase==='result'?QUESTIONS.find(q=>q.id===b.questionId):null;
+ modal(`<div class="eyebrow">BATTLE NOTES</div><h2>${q?'ことばの解説':'戦闘の手引き'}</h2><p>${q?E(q.explanation_ja):'呪文を選んで英語に答えます。正解は100%、不正解も50%の効果。MPは消費しません。強い呪文ほど同じ学習帯の難しい問題になります。'}</p>${q?`<small>${state.band} · ${E(q.id)}</small>`:''}${btn('戻る','close','','primary')}`);
+}
