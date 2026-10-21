@@ -32,28 +32,12 @@ const TOWN_NPCS={
     "ready": true
   },
   "resident": {
-    "name": "街の住人",
+    "name": "トト · 街の住人",
     "en": "The river flows from the snowy mountains.",
-    "ja": "川は雪山から流れてくるの。",
+    "ja": "川は雪山から流れてくるんだ。",
     "standing": "assets/npc/resident-standing.png",
     "portrait": "assets/npc/resident-portrait.png",
-    "ready": false
-  },
-  "adventurer-male": {
-    "name": "冒険者",
-    "en": "The volcano is dangerous. Prepare well.",
-    "ja": "火山は危険だ。よく準備しよう。",
-    "standing": "assets/npc/adventurer-male-standing.png",
-    "portrait": "assets/npc/adventurer-male-portrait.png",
-    "ready": false
-  },
-  "adventurer-female": {
-    "name": "冒険者",
-    "en": "Look at the map before you leave.",
-    "ja": "出発前に地図を見てね。",
-    "standing": "assets/npc/adventurer-female-standing.png",
-    "portrait": "assets/npc/adventurer-female-portrait.png",
-    "ready": false
+    "ready": true
   },
   "travel_guide": {
     "name": "ロアン · 旅の案内人",
@@ -61,6 +45,22 @@ const TOWN_NPCS={
     "ja": "町は南の入り江のそばだよ。",
     "standing": "assets/npc/travel_guide-standing.png",
     "portrait": "assets/npc/travel_guide-portrait.png",
+    "ready": true
+  },
+  "adventurer_male": {
+    "name": "レオ · 冒険者",
+    "en": "The volcano is dangerous. Prepare well.",
+    "ja": "火山は危険だ。よく準備しよう。",
+    "standing": "assets/npc/adventurer_male-standing.png",
+    "portrait": "assets/npc/adventurer_male-portrait.png",
+    "ready": true
+  },
+  "adventurer_female": {
+    "name": "セラ · 冒険者",
+    "en": "Look at the map before you leave.",
+    "ja": "出発前に地図を見てね。",
+    "standing": "assets/npc/adventurer_female-standing.png",
+    "portrait": "assets/npc/adventurer_female-portrait.png",
     "ready": true
   }
 };
