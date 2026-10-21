@@ -19,6 +19,7 @@ const REGIONS={
  ['風の停留所','rest',14,73],['浮かぶ草地','battle',32,52],['雲の泉','rest',34,81],['空のかけら','treasure',52,35],['風の渡り廊下','battle',55,65],['森への階段','gate',80,46,'forest']
  ],edges:[[0,1],[0,2],[1,3],[1,4],[2,4],[3,5],[4,5]]}
 };
+let mapCleanup=null;const mapPositions={};
 let state=Rules.fresh(), loadError='', renderer, worldScene, sceneStamp=0, talkStep=0, talkCharacter='kiki', translated=false;
 function validSave(parsed){
  if(!Rules.valid(parsed)||parsed.party.some(m=>!ASSETS[m.id])||!REGIONS[parsed.region])return false;
@@ -38,7 +39,7 @@ function header(){
 }
 function modal(html){$('#modalBody').innerHTML=html;if(!$('#modal').open)$('#modal').showModal();}
 function close(){ $('#modal').close(); }
-function clearScene(){sceneStamp++;if(renderer){renderer.destroy(true);renderer=null;worldScene=null;}}
+function clearScene(){if(mapCleanup){mapCleanup();mapCleanup=null;}sceneStamp++;if(renderer){renderer.destroy(true);renderer=null;worldScene=null;}}
 function paintPhaser(region){
  const host=$('#map-canvas');if(!host)return;
  const stamp=sceneStamp;
@@ -108,7 +109,7 @@ function startBattle(index){
 }
 function battle(){
  clearScene();header();const b=state.battle,r=REGIONS[state.region],m=member();if(!b)return region();
- $('#scene').innerHTML=`<section class="battle" style="--battle-art:url('${ASSETS[r.bg].img}')"><div class="arena"><div class="battle-top"><div class="health">${ASSETS[m.id].name} · Lv.${m.level}<progress value="${b.hp}" max="${Rules.maxHP(m)}"></progress><span>HP ${b.hp} / ${Rules.maxHP(m)}</span></div><div class="health">${ASSETS[b.enemy].name}<progress value="${b.enemyHP}" max="${b.enemyMax}"></progress><span>HP ${b.enemyHP} / ${b.enemyMax}</span></div></div>${image(m.id,'sprite ally')}${image(b.enemy,'sprite enemy'+(b.enemyHP<=0?' defeated':''))}<div class="battle-log" role="status">${E(b.log)}</div></div><div class="battle-panel" id="commands"></div></section>`;
+ $('#scene').innerHTML=`<section class="battle arena" style="--battle-art:url('${ASSETS[r.bg].img}')"><div class="battlefield"><div class="health enemy-health">${ASSETS[b.enemy].name}<progress value="${b.enemyHP}" max="${b.enemyMax}"></progress><span>HP ${b.enemyHP} / ${b.enemyMax}</span></div>${image(b.enemy,'sprite enemy'+(b.enemyHP<=0?' defeated':''))}</div><div class="battle-window"><div class="party-status">${image(m.id,'sprite ally')}<div class="health ally-health">${ASSETS[m.id].name} · Lv.${m.level}<progress value="${b.hp}" max="${Rules.maxHP(m)}"></progress><span>HP ${b.hp} / ${Rules.maxHP(m)}</span><small>MP消費なし</small></div></div><div class="battle-panel" id="commands" data-phase="${b.phase}"></div></div><div class="battle-log" role="status"></div></section>`;
  const panel=$('#commands');
  const title=Rules.SPELLS.find(s=>s.id===b.spell);
  const head=(name)=>`<div class="command-heading"><h2>${name}</h2>${btn('詳細','combatInfo','','quiet')}</div>`;
@@ -195,7 +196,7 @@ async function playCombat(hit){
    await motion(orb,[{translate:'0 0',opacity:1},{translate:(to.x-from.x)+'px '+(to.y-from.y)+'px',opacity:1}],reduced?90:hit.spell==='wind'?340:300);
    orb.remove();
   }
-  const b=state.battle,health=arena.querySelectorAll('.health');
+  const b=state.battle,health=[arena.querySelector('.ally-health'),arena.querySelector('.enemy-health')];
   health[0].querySelector('progress').value=b.hp;health[0].querySelector('span').textContent='HP '+b.hp+' / '+Rules.maxHP(member());
   health[1].querySelector('progress').value=b.enemyHP;health[1].querySelector('span').textContent='HP '+b.enemyHP+' / '+b.enemyMax;
   const ring=mote(hit.kind==='heal'?'heal-bloom':'impact-ring',to.x,to.y,hit.kind==='heal'?'✧':'');
@@ -292,7 +293,7 @@ function fitScreen(){
  const availableW=(v?v.width:innerWidth)-pad('paddingLeft')-pad('paddingRight')-12;
  const availableH=(v?v.height:innerHeight)-pad('paddingTop')-pad('paddingBottom')-12;
  const portrait=availableH>availableW,ratio=portrait?9/16:16/9;
- const width=Math.min(availableW,availableH*ratio,portrait?480:1440),height=width/ratio;
+ const width=availableW,height=availableH;
  const app=$('#app');app.style.width=width+'px';app.style.height=height+'px';
  app.style.left=((v?v.offsetLeft:0)+pad('paddingLeft')+(availableW+12-width)/2)+'px';
  app.style.top=((v?v.offsetTop:0)+pad('paddingTop')+(availableH+12-height)/2)+'px';
@@ -322,11 +323,13 @@ function tidyMap(isWorld){
  });
  map.appendChild(field);
  const controls=document.createElement('div');controls.className='map-selection';controls.innerHTML=btn('選択した場所へ','enterMap','','primary');controls.firstElementChild.disabled=true;map.appendChild(controls);
+ attachMapCamera(map,field,isWorld);
 }
 function selectMap(id){
  const n=Array.from(document.querySelectorAll('.node')).find(e=>e.dataset.arg===id);if(!n||n.disabled)return;
  document.querySelectorAll('.node').forEach(e=>{e.classList.remove('selected');e.setAttribute('aria-pressed','false');});n.classList.add('selected');n.setAttribute('aria-pressed','true');
  selectedMap={type:n.dataset.destination,id};
+ mapPositions[selectedMap.type==='region'?'world-'+state.layer:state.region]={x:parseFloat(n.style.left)*10,y:parseFloat(n.style.top)*6.4};
  const label=selectedMap.type==='region'?REGIONS[id].name:REGIONS[state.region].nodes[Number(id)][0];
  $('#place-name').textContent=label+(n.classList.contains('danger')?' · 強敵注意':'');
  const go=$('[data-action="enterMap"]');go.disabled=false;go.textContent=selectedMap.type==='region'?'このエリアへ':'このマスへ';
@@ -336,4 +339,29 @@ function combatInfo(){
  const b=state.battle;if(!b)return;
  const q=b.phase==='result'?QUESTIONS.find(q=>q.id===b.questionId):null;
  modal(`<div class="eyebrow">BATTLE NOTES</div><h2>${q?'ことばの解説':'戦闘の手引き'}</h2><p>${q?E(q.explanation_ja):'呪文を選んで英語に答えます。正解は100%、不正解も50%の効果。MPは消費しません。強い呪文ほど同じ学習帯の難しい問題になります。'}</p>${q?`<small>${state.band} · ${E(q.id)}</small>`:''}${btn('戻る','close','','primary')}`);
+}
+
+function attachMapCamera(map,field,isWorld){
+ const viewport=document.createElement('div');viewport.className='map-viewport';viewport.setAttribute('aria-label','地図：ドラッグで移動、ホイールやピンチで拡大縮小');
+ field.before(viewport);viewport.appendChild(field);
+ if(isWorld){const art=map.querySelector(':scope > img');field.prepend(art);}
+ const w=1000,h=640;field.style.width=w+'px';field.style.height=h+'px';
+ const camera=new MapCamera(w,h,viewport.clientWidth,viewport.clientHeight);
+ const key=isWorld?'world-'+state.layer:state.region;
+ const focus=mapPositions[key]||{x:isWorld?380:140,y:isWorld?429:435};
+ camera.focus(focus.x,focus.y,Math.max(1.8,Math.max(camera.vw/w,camera.vh/h)/camera.fit*1.12));
+ const toolbar=document.createElement('div');toolbar.className='map-tools';toolbar.innerHTML='<button type="button" aria-label="地図を縮小">−</button><output aria-live="polite"></output><button type="button" aria-label="地図を拡大">＋</button><button type="button">全体表示</button>';
+ map.appendChild(toolbar);
+ const draw=()=>{field.style.transform=`translate(${camera.x}px,${camera.y}px) scale(${camera.scale})`;field.style.setProperty('--marker-scale',1/camera.scale);toolbar.querySelector('output').textContent=Math.round(camera.zoom*100)+'%';};
+ const buttons=toolbar.querySelectorAll('button');buttons[0].onclick=()=>{camera.zoomAt(camera.zoom/1.3);draw();};buttons[1].onclick=()=>{camera.zoomAt(camera.zoom*1.3);draw();};buttons[2].onclick=()=>{camera.focus(w/2,h/2,1);draw();};
+ viewport.addEventListener('wheel',e=>{e.preventDefault();const r=viewport.getBoundingClientRect();camera.zoomAt(camera.zoom*Math.exp(-e.deltaY*.002),e.clientX-r.left,e.clientY-r.top);draw();},{passive:false});
+ const pointers=new Map();let moved=false,suppressUntil=0,gesture;
+ const metrics=()=>{const p=[...pointers.values()];return p.length>1?{x:(p[0].x+p[1].x)/2,y:(p[0].y+p[1].y)/2,d:Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y)}:{...p[0],d:0};};
+ viewport.addEventListener('pointerdown',e=>{if(e.button!==0&&e.pointerType==='mouse')return;e.target.setPointerCapture(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY,startX:e.clientX,startY:e.clientY});if(pointers.size===1)moved=false;else moved=true;gesture=metrics();});
+ viewport.addEventListener('pointermove',e=>{const old=pointers.get(e.pointerId);if(!old)return;const p={...old,x:e.clientX,y:e.clientY};pointers.set(e.pointerId,p);if(Math.hypot(p.x-p.startX,p.y-p.startY)>7)moved=true;if(!moved)return;e.preventDefault();const next=metrics();if(pointers.size>1&&gesture.d>0){const r=viewport.getBoundingClientRect();camera.zoomAt(camera.zoom*next.d/gesture.d,gesture.x-r.left,gesture.y-r.top);}camera.pan(next.x-gesture.x,next.y-gesture.y);gesture=next;draw();});
+ const end=e=>{if(!pointers.has(e.pointerId))return;if(moved||e.type==='pointercancel')suppressUntil=performance.now()+450;pointers.delete(e.pointerId);if(pointers.size)gesture=metrics();};
+ ['pointerup','pointercancel','lostpointercapture'].forEach(type=>viewport.addEventListener(type,end));
+ viewport.addEventListener('click',e=>{if(moved||performance.now()<suppressUntil){e.preventDefault();e.stopImmediatePropagation();}},{capture:true});
+ const observer=new ResizeObserver(()=>{camera.resize(viewport.clientWidth,viewport.clientHeight);draw();});observer.observe(viewport);
+ mapCleanup=()=>observer.disconnect();draw();
 }
