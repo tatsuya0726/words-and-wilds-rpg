@@ -117,7 +117,7 @@ function battle(){
   panel.innerHTML=head('呪文を選ぶ')+`<div class="spell-grid">${Rules.SPELLS.map(s=>btn(`${s.name}<span>${s.kind==='heal'?'回復':'威力'} ${s.power+(m.level-1)*4} · ${{basic:'基礎',standard:'標準',challenge:'挑戦'}[s.difficulty]}</span>`,'spell',s.id,'spell')).join('')}</div><div class="command-bottom"><small>${state.band} · MP消費なし</small>${btn('退却','retreat','','quiet')}</div>`;
  }else if(b.phase==='question'){
   const q=QUESTIONS.find(q=>q.id===b.questionId);
-  panel.innerHTML=head(title.name)+`<p class="cue">${E(q.cue_ja)}</p><div class="question" lang="en">${E(q.prompt_en)}</div><div class="choices">${q.options.map((o,i)=>btn(E(o),'answer',i)).join('')}</div><div class="command-bottom"><small>正解100% / 不正解50%</small>${btn('退却','retreat','','quiet')}</div>`;
+  panel.innerHTML=head(title.name)+`<div class="question-copy"><p class="cue">${E(q.cue_ja)}</p><div class="question" lang="en">${E(q.prompt_en)}</div></div><div class="choices">${q.options.map((o,i)=>btn(E(o),'answer',i)).join('')}</div><div class="command-bottom"><small>正解100% / 不正解50%</small>${btn('退却','retreat','','quiet')}</div>`;
  }else if(b.phase==='result'){
   const q=QUESTIONS.find(q=>q.id===b.questionId),a=b.result;
   panel.innerHTML=head(a.right?'正解！':'呪文は届いた！')+`<div class="result ${a.right?'':'wrong'}"><strong>${a.kind==='heal'?'回復':'ダメージ'} ${a.amount}</strong><span>${a.right?'100%':'50%'} の効果</span></div><p class="answer-line">正解：<strong lang="en">${E(q.answer)}</strong></p><div class="command-bottom">${btn('解説','combatInfo','','quiet')}${btn(b.enemyHP<=0?'勝利の報酬へ':'相手のターンへ','continue','','primary')}</div>`;
@@ -329,7 +329,7 @@ function selectMap(id){
  const n=Array.from(document.querySelectorAll('.node')).find(e=>e.dataset.arg===id);if(!n||n.disabled)return;
  document.querySelectorAll('.node').forEach(e=>{e.classList.remove('selected');e.setAttribute('aria-pressed','false');});n.classList.add('selected');n.setAttribute('aria-pressed','true');
  selectedMap={type:n.dataset.destination,id};
- mapPositions[selectedMap.type==='region'?'world-'+state.layer:state.region]={x:parseFloat(n.style.left)*10,y:parseFloat(n.style.top)*6.4};
+ mapPositions[selectedMap.type==='region'?'world-'+state.layer:state.region]={x:parseFloat(n.style.left)*10,y:parseFloat(n.style.top)*5.625};
  const label=selectedMap.type==='region'?REGIONS[id].name:REGIONS[state.region].nodes[Number(id)][0];
  $('#place-name').textContent=label+(n.classList.contains('danger')?' · 強敵注意':'');
  const go=$('[data-action="enterMap"]');go.disabled=false;go.textContent=selectedMap.type==='region'?'このエリアへ':'このマスへ';
@@ -345,10 +345,10 @@ function attachMapCamera(map,field,isWorld){
  const viewport=document.createElement('div');viewport.className='map-viewport';viewport.setAttribute('aria-label','地図：ドラッグで移動、ホイールやピンチで拡大縮小');
  field.before(viewport);viewport.appendChild(field);
  if(isWorld){const art=map.querySelector(':scope > img');field.prepend(art);}
- const w=1000,h=640;field.style.width=w+'px';field.style.height=h+'px';
+ const w=1000,h=562.5;field.style.width=w+'px';field.style.height=h+'px';
  const camera=new MapCamera(w,h,viewport.clientWidth,viewport.clientHeight);
  const key=isWorld?'world-'+state.layer:state.region;
- const focus=mapPositions[key]||{x:isWorld?380:140,y:isWorld?429:435};
+ const focus=mapPositions[key]||{x:isWorld?380:140,y:isWorld?376.875:382.5};
  camera.focus(focus.x,focus.y,Math.max(1.8,Math.max(camera.vw/w,camera.vh/h)/camera.fit*1.12));
  const toolbar=document.createElement('div');toolbar.className='map-tools';toolbar.innerHTML='<button type="button" aria-label="地図を縮小">−</button><output aria-live="polite"></output><button type="button" aria-label="地図を拡大">＋</button><button type="button">全体表示</button>';
  map.appendChild(toolbar);
