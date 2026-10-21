@@ -42,26 +42,8 @@ function modal(html){$('#modalBody').innerHTML=html;if(!$('#modal').open)$('#mod
 function close(){ $('#modal').close(); }
 function clearScene(){if(mapCleanup){mapCleanup();mapCleanup=null;}sceneStamp++;if(renderer){renderer.destroy(true);renderer=null;worldScene=null;}}
 function paintPhaser(region){
- const host=$('#map-canvas');if(!host)return;
- const stamp=sceneStamp;
- class View extends Phaser.Scene{
-  preload(){this.load.image('terrain',ASSETS.world.img);}
-  create(){
-   if(stamp!==sceneStamp)return;
-   worldScene=this;
-   this.back=this.add.image(0,0,'terrain').setOrigin(.5);
-   this.paths=this.add.graphics();
-   this.layout=()=>{
-    const w=this.scale.width,h=this.scale.height;
-    const [gx,gy,gw,gh]=Geography.areas[state.region].bounds;
-    this.back.setOrigin(0);this.back.setPosition(-gx/gw*w,-gy/gh*h);this.back.setDisplaySize(w*100/gw,h*100/gh);
-    this.back.setTint(region.layer==='below'?0x789baa:region.layer==='sky'?0xd9eaff:0xffffff);
-    this.paths.clear().lineStyle(2,0xf5dc9d,.7);
-    region.edges.forEach(([a,b])=>{const p=region.nodes[a],q=region.nodes[b];this.paths.lineBetween(w*p[2]/100,h*p[3]/100,w*q[2]/100,h*q[3]/100);});
-   };this.layout();this.scale.on('resize',this.layout);
-  }
- }
- renderer=new Phaser.Game({type:Phaser.CANVAS,parent:host,width:host.clientWidth,height:host.clientHeight,transparent:true,pixelArt:true,scale:{mode:Phaser.Scale.RESIZE},scene:View,audio:{noAudio:true},banner:false});
+ const host=$('#map-canvas');if(!host)return;const [x,y,w,h]=Geography.areas[state.region].bounds;
+ host.innerHTML='<img class="terrain-original" src="'+ASSETS.world.img+'" alt="" style="left:'+(-x/w*100)+'%;top:'+(-y/h*100)+'%;width:'+(10000/w)+'%;height:'+(10000/h)+'%"><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">'+region.edges.map(([a,b])=>{const p=region.nodes[a],q=region.nodes[b];return '<line x1="'+p[2]+'" y1="'+p[3]+'" x2="'+q[2]+'" y2="'+q[3]+'" />';}).join('')+'</svg>';
 }
 function unlockedRegion(id){
  if(REGIONS[id].layer==='ground')return true;
@@ -96,7 +78,7 @@ function node(index){
 function npcArt(id,face=false){const n=TOWN_NPCS[id];return n.ready?'<img class="npc-art" src="'+(face?n.portrait:n.standing)+'" alt="'+n.name+'">':'<div class="npc-placeholder" role="img" aria-label="'+n.name+'の立ち絵準備中"><span>♙</span><small>立ち絵準備中</small></div>';}
 let townRole='resident',townTranslated=false;
 function town(){state.region='grass';state.layer='ground';state.location={region:'grass',index:0};mark(0);region('grass');modal(`<div class="eyebrow">HAVEN / 風待ちの町</div><h2>町に立ち寄る</h2><p>星砂 ${state.dust} · いやしのしずく ${state.items.dew||0}個</p><div class="town-menu">${btn('道具屋','facility','item_shop')}${btn('宿屋','facility','inn')}${btn('配合案内','facility','breeding_guide')}${btn('住人と話す','facility','resident')}${btn('鍛冶屋と話す','facility','blacksmith')}${btn('旅の案内','facility','travel_guide')}${btn('レオと話す','facility','adventurer_male')}${btn('セラと話す','facility','adventurer_female')}${btn('道具を使う','inventory')}${btn('キキと話す','talk','kiki')}${btn('ネネと話す','talk','nene')}${btn('町を出る','close')}</div>`);}
-function facility(id,keep=false){if(!TOWN_NPCS[id])return;townRole=id;if(!keep)townTranslated=false;const n=TOWN_NPCS[id];modal(`<h2>${n.name}</h2><div class="facility">${npcArt(id)}<div>${townTranslated?'<p class="translation">'+n.ja+'</p>':''}<p lang="en" class="english">${n.en}</p>${btn(townTranslated?'訳を隠す':'日本語を重ねる','npcTranslate')}${btn('話を聞く','npcTalk',id)}<p>所持星砂 ${state.dust}</p>${id==='item_shop'?'<p>いやしのしずく：HP30回復（戦闘外・戦闘不能にも使用可）</p>'+btn('1個買う · 星砂'+Rules.SHOP.dew.price,'buy','dew')+'<p>所持 '+(state.items.dew||0)+'個</p>':id==='inn'?'<p>所持する全員が全回復します。</p>'+btn('泊まる · 星砂'+Rules.SHOP.innPrice,'inn'):id==='breeding_guide'?'<p>選んだ親2個体は消え、子1体が加入します。</p>'+btn('配合工房へ','breed'):''}</div></div>${btn('町へ戻る','town')}`);}
+function facility(id,keep=false){if(!TOWN_NPCS[id])return;townRole=id;if(!keep)townTranslated=false;const n=TOWN_NPCS[id];modal(`<h2>${n.name}</h2><div class="facility">${npcArt(id)}<div>${townTranslated?'<p class="translation">'+n.ja+'</p>':''}<p lang="en" class="english">${n.en}</p>${btn(townTranslated?'訳を隠す':'日本語を重ねる','npcTranslate')}${btn('話を聞く','npcTalk',id)}<p>所持星砂 ${state.dust}</p>${id==='item_shop'?'<p>いやしのしずく：HP30回復（戦闘外・戦闘不能にも使用可）</p>'+btn('1個買う · 星砂'+Rules.SHOP.dew.price,'buy','dew')+'<p>所持 '+(state.items.dew||0)+'個</p>'+['berry','honey'].map(id=>'<p>'+Rules.SHOP[id].name+'（餌） · 所持 '+(state.items[id]||0)+'個</p>'+btn('買う · 星砂'+Rules.SHOP[id].price,'buy',id)).join(''):id==='inn'?'<p>所持する全員が全回復します。</p>'+btn('泊まる · 星砂'+Rules.SHOP.innPrice,'inn'):id==='breeding_guide'?'<p>選んだ親2個体は消え、子1体が加入します。</p>'+btn('配合工房へ','breed'):''}</div></div>${btn('町へ戻る','town')}`);}
 function npcConversation(id){const n=TOWN_NPCS[id];modal('<h2>'+n.name+'</h2><div class="talk">'+npcArt(id,true)+'<div><p class="english" lang="en">'+n.en+'</p></div></div>'+btn('日本語を重ねる','npcFaceTranslate',id)+btn('施設へ戻る','facility',id));}
 function inventory(){modal('<h2>道具 · いやしのしずく '+(state.items.dew||0)+'個</h2><p>HP30回復。使う仲間を選んでください。</p><div class="inventory-list">'+state.party.map(m=>btn(ASSETS[m.id].name+' ('+m.uid+') HP '+m.hp+'/'+Rules.maxHP(m),'useItem',m.uid)).join('')+'</div>'+btn('閉じる','close'));}
 const LINES={
@@ -110,32 +92,38 @@ function showTalk(){
 }
 function startBattle(index){
  const r=REGIONS[state.region],boss=r.nodes[index][1]==='boss',danger=r.danger||boss;
- const enemy=boss?'ancient_forest_stag':r.enemies[index%r.enemies.length],hp=danger?170:48+(state.region==='grass'?0:18);
+ const enemy=boss?(state.region==='forest'?'lantern_moth':'ancient_forest_stag'):r.enemies[index%r.enemies.length],hp=danger?170:48+(state.region==='grass'?0:18);
  if(!Rules.start(state,{enemy,enemyHP:hp,enemyMax:hp,attack:danger?23:9,nodeKey:`${state.region}:${index}`,log:danger?'強い魔力を感じる。育ててから戻っても大丈夫。':'魔獣が現れた。言葉を呪文に変えよう。'})){notify('同行する仲間が倒れています。町の宿屋か泉で回復してください。');return;}state.view='battle';save();battle();
 }
 function battle(){
  clearScene();header();const b=state.battle,r=REGIONS[state.region],m=member();if(!b)return region();
- $('#scene').innerHTML=`<section class="battle arena" style="--battle-art:url('${ASSETS[r.bg].img}')"><div class="battlefield"><div class="health enemy-health">${ASSETS[b.enemy].name}<progress value="${b.enemyHP}" max="${b.enemyMax}"></progress><span>HP ${b.enemyHP} / ${b.enemyMax}</span></div>${image(b.enemy,'sprite enemy'+(b.enemyHP<=0?' defeated':''))}</div><div class="battle-window"><div class="party-status trio">${b.units.map(uid=>{const u=Rules.unit(state,uid);return `<button class="team-unit ${uid===state.active?'acting':''} ${u.hp<=0?'fainted':''}" data-action="actor" data-arg="${uid}" data-unit="${uid}" ${b.phase!=='choose'||b.acted.includes(uid)||u.hp<=0?'disabled':''}>${image(u.id,'sprite '+(uid===state.active?'ally':'companion'))}<div class="health ${uid===state.active?'ally-health':''}">${b.units.indexOf(uid)+1}. ${ASSETS[u.id].name}<progress value="${u.hp}" max="${Rules.maxHP(u)}"></progress><span>HP ${u.hp}/${Rules.maxHP(u)}</span><small>${u.hp<=0?'戦闘不能':b.acted.includes(uid)?'行動済み':uid===state.active?'行動中':'未行動'}</small></div></button>`;}).join('')}</div><div class="battle-panel" id="commands" data-phase="${b.phase}"></div></div><div class="battle-log" role="status"></div></section>`;
+ $('#scene').innerHTML=`<section class="battle arena" style="--battle-art:url('${ASSETS[r.bg].img}')"><div class="battlefield"><div class="enemy-anchor"><div class="health enemy-health">${ASSETS[b.enemy].name}<progress value="${b.enemyHP}" max="${b.enemyMax}"></progress><span>HP ${b.enemyHP} / ${b.enemyMax}</span></div>${image(b.enemy,'sprite enemy'+(b.enemyHP<=0?' defeated':''))}</div></div><div class="party-status trio">${b.units.map(uid=>{const u=Rules.unit(state,uid);return `<button class="team-unit ${uid===state.active?'acting':''} ${u.hp<=0?'fainted':''}" data-action="actor" data-arg="${uid}" data-unit="${uid}" ${b.phase!=='choose'||b.acted.includes(uid)||u.hp<=0?'disabled':''}>${image(u.id,'sprite '+(uid===state.active?'ally':'companion'))}<div class="health ${uid===state.active?'ally-health':''}">${b.units.indexOf(uid)+1}. ${ASSETS[u.id].name}<progress value="${u.hp}" max="${Rules.maxHP(u)}"></progress><span>HP ${u.hp}/${Rules.maxHP(u)}</span><small>${u.hp<=0?'戦闘不能':b.acted.includes(uid)?'行動済み':uid===state.active?'行動中':'未行動'}</small></div></button>`;}).join('')}</div><div class="battle-window"><div class="battle-panel" id="commands" data-phase="${b.phase}"></div></div><div class="battle-log" role="status"></div></section>`;
  const panel=$('#commands');
  const title=Rules.SPELLS.find(s=>s.id===b.spell);
  const head=(name)=>`<div class="command-heading"><h2>${name}</h2>${btn('詳細','combatInfo','','quiet')}</div>`;
  if(b.phase==='choose'){
-  panel.innerHTML=head(ASSETS[m.id].name+'の番')+`<div class="spell-grid">${Rules.SPELLS.map(s=>btn(`${s.name}<span>${s.kind==='heal'?'回復':'威力'} ${s.power+(m.level-1)*4} · ${{basic:'基礎',standard:'標準',challenge:'挑戦'}[s.difficulty]}</span>`,'spell',s.id,'spell')).join('')}</div><div class="command-bottom"><small>全員が行動すると敵の番 · MP消費なし</small>${btn('退却','retreat','','quiet')}</div>`;
+  panel.innerHTML=head(ASSETS[m.id].name+'の番')+`<div class="spell-grid">${Rules.SPELLS.map(s=>btn(`${s.name}<span>${s.kind==='heal'?'回復':'威力'} ${s.power+(m.level-1)*4} · ${{basic:'基礎',standard:'標準',challenge:'挑戦'}[s.difficulty]}</span>`,'spell',s.id,'spell')).join('')}</div><div class="command-bottom"><div class="scout-actions">${btn('道具','battleItems')}${btn('スカウト','scoutPreview','','scout-button')}<span class="scout-rate" role="status">${Rules.SCOUT.breedOnly.includes(b.enemy)?'配合限定':b.fed?'成功率 '+Rules.scoutRate(state)+'%':'先に餌を与えよう'}</span></div>${btn('退却','retreat','','quiet')}</div>`;
  }else if(b.phase==='question'){
   const q=QUESTIONS.find(q=>q.id===b.questionId);
   panel.innerHTML=head(title.name+(title.kind==='heal'?' → '+ASSETS[Rules.unit(state,b.target).id].name:''))+`<div class="question-copy"><p class="cue">${E(q.cue_ja)}</p><div class="question" lang="en">${E(q.prompt_en)}</div></div><div class="choices">${q.options.map((o,i)=>btn(E(o),'answer',i)).join('')}</div><div class="command-bottom"><small>正解100% / 不正解50%</small>${btn('退却','retreat','','quiet')}</div>`;
+ }else if(b.phase==='result'&&b.actionResult){
+  panel.innerHTML=head(b.actionResult.kind==='feed'?'餌を与えた': 'スカウト')+'<p class="action-message">'+b.actionResult.text+'</p>'+btn('次の行動へ','continue','','primary');
  }else if(b.phase==='result'){
   const q=QUESTIONS.find(q=>q.id===b.questionId),a=b.result;
   panel.innerHTML=head(a.right?'正解！':'呪文は届いた！')+`<div class="result ${a.right?'':'wrong'}"><strong>${a.kind==='heal'?'回復':'ダメージ'} ${a.amount}</strong><span>${a.right?'100%':'50%'} の効果${a.kind==='heal'?' · '+ASSETS[Rules.unit(state,a.target).id].name:''}</span></div><p class="answer-line">正解：<strong lang="en">${E(q.answer)}</strong></p><div class="command-bottom">${btn('解説','combatInfo','','quiet')}${btn(b.enemyHP<=0?'勝利の報酬へ':'次の行動へ','continue','','primary')}</div>`;
  }else if(b.phase==='won'){
-  panel.innerHTML=head('勝利！')+`<div class="result"><strong>星砂 +2 · 経験値 +2</strong><span>${ASSETS[m.id].name} Lv.${m.level}</span></div><p>${ASSETS[b.enemy].name}と心が通じました。</p>${btn('探索を続ける','finish','','primary')}`;
+  panel.innerHTML=b.recruited?head('スカウト成功！')+'<p>'+ASSETS[b.enemy].name+'が仲間になりました。同行はそのまま、所持仲間へ加わります。</p>'+btn('探索を続ける','finish','','primary'):head('勝利！')+`<div class="result"><strong>星砂 +2 · 経験値 +2</strong><span>${ASSETS[m.id].name} Lv.${m.level}</span></div><p>仲間にするには、戦闘中に餌を与えてスカウトしよう。</p>${btn('探索を続ける','finish','','primary')}`;
  }else if(b.phase==='lost'){
   panel.innerHTML=head('ひと休みしよう')+`<p>仲間も星砂も失いません。</p>${btn('探索へ戻る','finish','','primary')}`;
  }
 }
 
+
+function battleItems(){const b=state.battle;if(b?.phase!=='choose')return;const locked=Rules.SCOUT.breedOnly.includes(b.enemy);modal('<h2>道具 · '+ASSETS[b.enemy].name+'</h2>'+(locked?'<p>この相手は配合限定。餌は消費しません。</p>':'<p>餌を与えると1行動を使います。次の行動でスカウトできます。</p>'+['berry','honey'].map(id=>'<p>'+Rules.SHOP[id].name+' · '+(state.items[id]||0)+'個</p>'+(state.items[id]?btn('与える · '+Rules.SHOP[id].name,'feed',id):'町の道具屋で購入できます。')).join(''))+btn('戻る','close'));}
+function scoutPreview(){const b=state.battle;if(b?.phase!=='choose')return;const rate=Rules.scoutRate(state);modal('<h2>スカウト · '+ASSETS[b.enemy].name+'</h2><p>'+ (Rules.SCOUT.breedOnly.includes(b.enemy)?'この相手は配合でのみ仲間になります。':rate?'成功率 '+rate+'%。失敗すると1行動を使い、再挑戦には餌が必要です。':'先に道具から餌を与えてください。')+'</p>'+(rate?btn('成功率 '+rate+'%で誘う','scoutConfirm','','primary'):'')+btn('やめる','close'));}
+
 function spell(id){if(id==='heal'&&state.battle?.phase==='choose'){modal('<h2>回復する仲間</h2>'+state.battle.units.map(uid=>{const u=Rules.unit(state,uid);return btn(ASSETS[u.id].name+' ('+uid+') HP '+u.hp+'/'+Rules.maxHP(u),'healTarget',uid);}).join('')+btn('戻る','close'));return;}prepareSpell(id);}
-function prepareSpell(id){const b=state.battle;if(!b||b.phase!=='choose')return;const s=Rules.SPELLS.find(s=>s.id===id);b.spell=id;b.questionId=Rules.pick(QUESTIONS,state,s.difficulty).id;b.phase='question';save();battle();}
+function prepareSpell(id){const b=state.battle;if(!b||b.phase!=='choose')return;const s=Rules.SPELLS.find(s=>s.id===id);delete b.actionResult;b.spell=id;b.questionId=Rules.pick(QUESTIONS,state,s.difficulty).id;b.phase='question';save();battle();}
 function answer(index){if(combatAnimating)return;const b=state.battle;if(!b||b.phase!=='question')return;const q=QUESTIONS.find(q=>q.id===b.questionId),s=Rules.SPELLS.find(s=>s.id===b.spell);const result=Rules.cast(state,q,index,s);if(!result)return;save();playCombat({spell:s.id,kind:s.kind,amount:result.amount,weak:!result.right,enemy:false,target:result.target,defeated:b.enemyHP<=0});}
 function nextTurn(){
  if(combatAnimating)return;
@@ -167,7 +155,7 @@ function exportSave(){
  const raw=loadError?localStorage.getItem(SAVE):JSON.stringify(state,null,2),url=URL.createObjectURL(new Blob([raw||''],{type:'application/json'})),a=document.createElement('a');
  a.href=url;a.download='words-wilds-save.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
-function help(){modal(`<div class="eyebrow">FIELD NOTES</div><h2>旅の手引き</h2><p>① 草原の町から、明るいマスをタップ。分岐を自由に選び、周回して道を開きます。赤い山は最初から入れますが強敵です。</p><p>② 呪文を選び、英語問題に答えます。味方の攻撃・回復はすべて呪文。正解100%、不正解50%。相手も呪文で反撃します。</p><p>③ 勝つと仲間・経験・星砂。最大3体を編成し、全員の行動後に敵が反撃します。配合は親の個体2体を消費します。</p><p>④ 草原の坑道から地下、森の階段から空中へ。試作は地上3＋地下1＋空中1、計35マスです。背景の地下・空中専用素材、全18配合、技継承、BGMは未実装です。</p><p>学習問題370問を搭載。キキ・ネネの町会話は別の自由会話です。設定から保存を持ち出せます。</p>${btn('旅に戻る','close','','primary')}`);}
+function help(){modal(`<div class="eyebrow">FIELD NOTES</div><h2>旅の手引き</h2><p>① 草原の町から、明るいマスをタップ。分岐を自由に選び、周回して道を開きます。赤い山は最初から入れますが強敵です。</p><p>② 呪文を選び、英語問題に答えます。味方の攻撃・回復はすべて呪文。正解100%、不正解50%。相手も呪文で反撃します。</p><p>③ 勝つと経験・星砂。仲間にするには道具で餌を与え、次の行動でスカウト。失敗後は再び餌が必要です。餌と失敗は各1行動、全員行動後に反撃。モリゼルは配合限定です。最大3体を編成し、全員の行動後に敵が反撃します。配合は親の個体2体を消費します。</p><p>④ 草原の坑道から地下、森の階段から空中へ。試作は地上3＋地下1＋空中1、計35マスです。背景の地下・空中専用素材、全18配合、技継承、BGMは未実装です。</p><p>学習問題370問を搭載。キキ・ネネの町会話は別の自由会話です。設定から保存を持ち出せます。</p>${btn('旅に戻る','close','','primary')}`);}
 
 // Effects are presentation only. Rules/save commit once before the visual sequence.
 let combatAnimating=false;
@@ -233,8 +221,9 @@ async function playCombat(hit){
 document.addEventListener('click',event=>{
  const el=event.target.closest('[data-action]');if(!el||el.disabled)return;const a=el.dataset.action,x=el.dataset.arg;
  if(opening&&['tapBegin','startJourney'].includes(a)){if(a==='tapBegin')showTitle();else beginJourney();return;}
- if(opening||combatAnimating)return;
- if(state.battle&&!['spell','answer','continue','finish','retreat','combatInfo','close','actor','healTarget'].includes(a))return;
+ if(opening||combatAnimating||mapTransition)return;
+ if(state.battle&&!['spell','answer','continue','finish','retreat','combatInfo','close','actor','healTarget','battleItems','feed','scoutPreview','scoutConfirm'].includes(a))return;
+ if(a==='battleItems'){battleItems();return;}if(a==='feed'){if(Rules.feed(state,x)){save();close();battle();}return;}if(a==='scoutPreview'){scoutPreview();return;}if(a==='scoutConfirm'){if(Rules.scout(state)){save();close();battle();}return;}
  if(a==='actor'){if(Rules.selectActor(state,x)){save();battle();}return;}if(a==='healTarget'){if(state.battle?.phase==='choose'&&state.battle.units.includes(x)){state.battle.target=x;close();prepareSpell('heal');}return;}
  if(a==='combatInfo'){combatInfo();return;}
  if(a==='selectMap'){selectMap(x);return;}
@@ -349,10 +338,19 @@ function selectMap(id){
  $('#place-name').textContent=label+(n.classList.contains('danger')?' · 強敵注意':'');
  const go=$('[data-action="enterMap"]');go.disabled=false;go.textContent=selectedMap.type==='region'?'このエリアへ':'このマスへ';
 }
-function enterMap(){if(!selectedMap)return;const pick=selectedMap;selectedMap=null;if(pick.type==='region')region(pick.id);else node(Number(pick.id));}
+var mapTransition=false;
+async function enterMap(){if(!selectedMap||mapTransition)return;const pick=selectedMap;selectedMap=null;if(pick.type!=='region'){node(Number(pick.id));return;}
+ mapTransition=true;const scene=$('#scene'),old=$('.node-field>img'),start=old.getBoundingClientRect(),base=scene.getBoundingClientRect();
+ const overlay=document.createElement('div');overlay.className='map-travel';overlay.innerHTML='<img src="'+ASSETS.world.img+'" alt=""><span>'+REGIONS[pick.id].name+'</span>';const art=overlay.firstElementChild;
+ region(pick.id);scene.appendChild(overlay);const dest=$('.terrain-original').getBoundingClientRect();
+ art.style.cssText='position:absolute;left:0;top:0;width:'+start.width+'px;height:'+start.height+'px;transform-origin:0 0;';
+ const duration=matchMedia('(prefers-reduced-motion: reduce)').matches?0:700;
+ try{await art.animate([{transform:'translate('+(start.left-base.left)+'px,'+(start.top-base.top)+'px) scale(1,1)'},{transform:'translate('+(dest.left-base.left)+'px,'+(dest.top-base.top)+'px) scale('+(dest.width/start.width)+','+(dest.height/start.height)+')'}],{duration,easing:'cubic-bezier(.3,0,.2,1)',fill:'forwards'}).finished;}finally{overlay.remove();mapTransition=false;}
+}
+
 function combatInfo(){
  const b=state.battle;if(!b)return;
- const q=b.phase==='result'?QUESTIONS.find(q=>q.id===b.questionId):null;
+ const q=b.phase==='result'&&!b.actionResult?QUESTIONS.find(q=>q.id===b.questionId):null;
  modal(`<div class="eyebrow">BATTLE NOTES</div><h2>${q?'ことばの解説':'戦闘の手引き'}</h2><p>${q?E(q.explanation_ja):'呪文を選んで英語に答えます。正解は100%、不正解も50%の効果。MPは消費しません。強い呪文ほど同じ学習帯の難しい問題になります。'}</p>${q?`<small>${state.band} · ${E(q.id)}</small>`:''}${btn('戻る','close','','primary')}`);
 }
 

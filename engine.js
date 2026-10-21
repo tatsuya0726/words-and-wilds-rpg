@@ -28,8 +28,8 @@ function oldValid(s){
  const b=s.battle;
  if(!b)return true;
  if(!['choose','question','result','won','lost'].includes(b.phase)||typeof b.enemy!=='string'||typeof b.nodeKey!=='string'||typeof b.log!=='string'||![b.hp,b.enemyHP,b.enemyMax,b.attack,b.turn].every(Number.isFinite)||b.hp<0||b.enemyHP<0||b.enemyMax<=0||b.enemyHP>b.enemyMax||b.attack<0||b.turn<0)return false;
- if(['question','result'].includes(b.phase)&&(!SPELLS.some(x=>x.id===b.spell)||typeof b.questionId!=='string'))return false;
- if(b.phase==='result'&&(!b.result||typeof b.result.right!=='boolean'||![b.result.base,b.result.amount].every(Number.isFinite)))return false;
+ if(['question','result'].includes(b.phase)&&!b.actionResult&&(!SPELLS.some(x=>x.id===b.spell)||typeof b.questionId!=='string'))return false;
+ if(b.phase==='result'&&!b.actionResult&&(!b.result||typeof b.result.right!=='boolean'||![b.result.base,b.result.amount].every(Number.isFinite)))return false;
  return true;
 }
 function migrate(input){
@@ -40,16 +40,16 @@ function migrate(input){
  if(s.battle){const b=s.battle;lead.hp=Math.min(maxHP(lead),b.hp);b.units=[...s.team];b.acted=b.phase==='result'?[s.active]:[];b.target=s.active;b.lastTarget=s.active;}
  return s;
 }
-function fresh(){return migrate(oldFresh());}
+function fresh(){const s=migrate(oldFresh());s.items.berry=3;return s;}
 const unit=(s,id=s.active)=>s.party.find(m=>m.uid===id);
 function sync(s){if(s.battle)s.battle.hp=unit(s).hp;}
-function start(s,config){if(s.battle)return false;const alive=s.team.filter(id=>unit(s,id).hp>0);if(!alive.length)return false;s.active=alive[0];s.battle={...config,units:[...s.team],acted:[],target:s.active,lastTarget:s.active,hp:unit(s).hp,phase:'choose',turn:0};return true;}
+function start(s,config){if(s.battle)return false;const alive=s.team.filter(id=>unit(s,id).hp>0);if(!alive.length)return false;s.active=alive[0];s.battle={...config,units:[...s.team],acted:[],scoutSeed:Math.floor(Math.random()*4294967296),target:s.active,lastTarget:s.active,hp:unit(s).hp,phase:'choose',turn:0};return true;}
 function selectActor(s,id){const b=s.battle;if(!b||b.phase!=='choose'||!b.units.includes(id)||b.acted.includes(id)||unit(s,id).hp<=0)return false;s.active=id;b.target=id;sync(s);return true;}
 function setTeam(s,ids){if(s.battle||ids.length<1||ids.length>3||new Set(ids).size!==ids.length||ids.some(id=>!unit(s,id)))return false;s.team=[...ids];s.active=ids[0];return true;}
 function castV2(s,q,index,spell){const b=s.battle;if(!b||b.phase!=='question'||b.questionId!==q.id||b.spell!==spell.id||b.acted.includes(s.active)||!Number.isInteger(index)||index<0||index>=q.options.length)return null;
  const m=unit(s),right=q.options[index]===q.answer,base=spell.power+(m.level-1)*4,amount=effect(base,right);if(m.hp<=0)return null;
  const target=unit(s,b.target)||m;if(spell.kind==='heal')target.hp=Math.min(maxHP(target),target.hp+amount);else b.enemyHP=Math.max(0,b.enemyHP-amount);
- s.answered++;s.correct+=+right;s.seen[q.id]=(s.seen[q.id]||0)+1;b.acted.push(s.active);b.result={right,base,amount,kind:spell.kind,selected:index,target:target.uid,actor:s.active};b.phase='result';sync(s);return b.result;
+ s.answered++;s.correct+=+right;s.seen[q.id]=(s.seen[q.id]||0)+1;b.acted.push(s.active);delete b.actionResult;b.result={right,base,amount,kind:spell.kind,selected:index,target:target.uid,actor:s.active};b.phase='result';sync(s);return b.result;
 }
 function enemyV2(s){const b=s.battle;if(!b||b.phase!=='result'||b.enemyHP<=0)return null;
  const next=b.units.find(id=>unit(s,id).hp>0&&!b.acted.includes(id));if(next){s.active=next;b.target=next;b.phase='choose';sync(s);return {nextOnly:true};}
@@ -59,22 +59,32 @@ function enemyV2(s){const b=s.battle;if(!b||b.phase!=='result'||b.enemyHP<=0)ret
 }
 function rewardV2(s){const b=s.battle;if(!b||b.enemyHP>0||b.rewarded)return false;b.rewarded=true;s.dust+=2;
  b.units.forEach(id=>{const m=unit(s,id);m.xp+=2;while(m.xp>=3){m.xp-=3;m.level++;m.hp=Math.min(maxHP(m),m.hp+12);}});
- s.party.push({uid:'m'+s.nextUid++,id:b.enemy,level:1,xp:0,hp:80});if(!s.cleared.includes(b.nodeKey))s.cleared.push(b.nodeKey);b.phase='won';sync(s);return true;}
+ if(!s.cleared.includes(b.nodeKey))s.cleared.push(b.nodeKey);b.phase='won';sync(s);return true;}
 function breedV2(s,r,parents){if(s.battle||!r||s.dust<3||!Array.isArray(parents)||parents.length!==2||parents[0]===parents[1])return false;
  const members=parents.map(id=>unit(s,id));if(members.some((m,i)=>!m||m.id!==r.parents[i]))return false;
  const child={uid:'m'+s.nextUid,id:r.child,level:1,xp:0,hp:80};s.nextUid++;s.party=s.party.filter(m=>!parents.includes(m.uid));s.party.push(child);s.team=s.team.filter(id=>!parents.includes(id));if(s.team.length<3)s.team.push(child.uid);s.active=s.team[0];s.dust-=3;s.breeds++;return true;}
-const SHOP={dew:{name:'いやしのしずく',price:2,heal:30},innPrice:2};
+const SHOP={dew:{name:'いやしのしずく',price:2,heal:30},berry:{name:'木の実',price:1,affinity:25},honey:{name:'蜜の実',price:3,affinity:45},innPrice:2};
 function buy(s,id){const item=SHOP[id];if(s.battle||!item||!item.price||s.dust<item.price||(s.items[id]||0)>=99)return false;s.dust-=item.price;s.items[id]=(s.items[id]||0)+1;return true;}
-function use(s,id,uid){const item=SHOP[id],m=unit(s,uid);if(s.battle||!item||!m||!s.items[id]||m.hp>=maxHP(m))return false;m.hp=Math.min(maxHP(m),m.hp+item.heal);s.items[id]--;return true;}
+function use(s,id,uid){const item=SHOP[id],m=unit(s,uid);if(s.battle||!item?.heal||!m||!s.items[id]||m.hp>=maxHP(m))return false;m.hp=Math.min(maxHP(m),m.hp+item.heal);s.items[id]--;return true;}
 function inn(s){if(s.battle||s.dust<SHOP.innPrice||s.party.every(m=>m.hp===maxHP(m)))return false;s.dust-=SHOP.innPrice;s.party.forEach(m=>m.hp=maxHP(m));return true;}
 function valid(s){
- if(!s||s.version!==2||!Array.isArray(s.party)||!Array.isArray(s.team)||s.team.length<1||s.team.length>3||new Set(s.team).size!==s.team.length||!s.team.includes(s.active)||!Number.isInteger(s.nextUid)||s.nextUid<1||!s.items||Object.entries(s.items).some(([k,v])=>k!=='dew'||!Number.isInteger(v)||v<0||v>99))return false;
+ if(!s||s.version!==2||!Array.isArray(s.party)||!Array.isArray(s.team)||s.team.length<1||s.team.length>3||new Set(s.team).size!==s.team.length||!s.team.includes(s.active)||!Number.isInteger(s.nextUid)||s.nextUid<1||!s.items||Object.entries(s.items).some(([k,v])=>!['dew','berry','honey'].includes(k)||!Number.isInteger(v)||v<0||v>99))return false;
  if(s.party.some(m=>!m||!/^m[1-9][0-9]*$/.test(m.uid)||+m.uid.slice(1)>=s.nextUid||!Number.isFinite(m.hp)||m.hp<0||m.hp>maxHP(m))||new Set(s.party.map(m=>m.uid)).size!==s.party.length||s.team.some(id=>!unit(s,id)))return false;
  const legacy=JSON.parse(JSON.stringify(s));legacy.version=1;legacy.party.forEach(m=>m.id=m.uid);legacy.active=s.active;if(!oldValid(legacy))return false;
- const b=s.battle;if(b&&(!Array.isArray(b.units)||JSON.stringify(b.units)!==JSON.stringify(s.team)||!Array.isArray(b.acted)||new Set(b.acted).size!==b.acted.length||b.acted.some(id=>!b.units.includes(id))||!b.units.includes(b.target)||!b.units.includes(b.lastTarget)))return false;
+ const b=s.battle;if(b&&((b.fed!==undefined&&(!Number.isFinite(b.fed)||b.fed<0||b.fed>60))||(b.scoutSeed!==undefined&&(!Number.isInteger(b.scoutSeed)||b.scoutSeed<0||b.scoutSeed>4294967295))||(b.actionResult&&!['feed','scout'].includes(b.actionResult.kind))))return false;
+ if(b&&(!Array.isArray(b.units)||JSON.stringify(b.units)!==JSON.stringify(s.team)||!Array.isArray(b.acted)||new Set(b.acted).size!==b.acted.length||b.acted.some(id=>!b.units.includes(id))||!b.units.includes(b.target)||!b.units.includes(b.lastTarget)))return false;
  if(s.location&&(!Number.isInteger(s.location.index)||s.location.index<0||typeof s.location.region!=='string'))return false;
  return true;
 }
-const api={migrate,start,unit,selectActor,setTeam,SHOP,buy,use,inn,LEVELS,SPELLS,fresh,pool,pick,effect,maxHP,cast:castV2,enemyTurn:enemyV2,reward:rewardV2,breed:breedV2,valid};
+const SCOUT={breedOnly:['ancient_forest_stag'],max:90,hpBonus:30,reactions:[{min:75,text:'仲間になりたそうにこちらを見ている。'},{min:55,text:'うれしそうに食べ、こちらに近づいてきた。'},{min:35,text:'興味を持って、ゆっくり食べている。'},{min:0,text:'こちらを警戒しながら食べている。'}]};
+function scoutRate(s){const b=s.battle;if(!b||SCOUT.breedOnly.includes(b.enemy)||b.enemyHP<=0||!b.fed)return 0;return Math.min(SCOUT.max,Math.round(b.fed+SCOUT.hpBonus*(1-b.enemyHP/b.enemyMax)));}
+function scoutReaction(s){return SCOUT.reactions.find(r=>scoutRate(s)>=r.min).text;}
+function canAct(s){const b=s.battle;return b&&b.phase==='choose'&&b.enemyHP>0&&unit(s).hp>0&&!b.acted.includes(s.active);}
+function feed(s,id){const b=s.battle,item=SHOP[id];if(!canAct(s)||SCOUT.breedOnly.includes(b.enemy)||!item?.affinity||!s.items[id])return false;s.items[id]--;b.fed=Math.min(60,(b.fed||0)+item.affinity);b.actionResult={kind:'feed',text:scoutReaction(s)};b.acted.push(s.active);b.phase='result';return true;}
+function scout(s){const b=s.battle,rate=scoutRate(s);if(!canAct(s)||!rate)return null;
+ // Persisted PRNG state: reloading the saved encounter cannot reroll this attempt.
+ b.scoutSeed=(Math.imul((b.scoutSeed??123456789),1664525)+1013904223)>>>0;const success=b.scoutSeed/4294967296<rate/100;b.acted.push(s.active);b.fed=0;b.actionResult={kind:'scout',rate,success,text:success?'心が通じた！新しい個体が仲間になりました。':'スカウト失敗。もう一度餌を与えてから誘おう。'};
+ if(success){s.party.push({uid:'m'+s.nextUid++,id:b.enemy,level:1,xp:0,hp:80});b.recruited=true;b.rewarded=true;b.phase='won';if(!s.cleared.includes(b.nodeKey))s.cleared.push(b.nodeKey);}else b.phase='result';return b.actionResult;}
+const api={SCOUT,scoutRate,scoutReaction,feed,scout,migrate,start,unit,selectActor,setTeam,SHOP,buy,use,inn,LEVELS,SPELLS,fresh,pool,pick,effect,maxHP,cast:castV2,enemyTurn:enemyV2,reward:rewardV2,breed:breedV2,valid};
 if(typeof module!=='undefined')module.exports=api;else root.Rules=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
