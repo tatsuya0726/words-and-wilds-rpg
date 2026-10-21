@@ -16,12 +16,12 @@ const TOWN_NPCS={
     "ready": true
   },
   "blacksmith": {
-    "name": "鍛冶屋",
+    "name": "ガルド · 鍛冶屋",
     "en": "I make tools for travelers.",
     "ja": "旅人のための道具を作っているんだ。",
     "standing": "assets/npc/blacksmith-standing.png",
     "portrait": "assets/npc/blacksmith-portrait.png",
-    "ready": false
+    "ready": true
   },
   "breeding_guide": {
     "name": "モリー · 配合案内人",
@@ -30,14 +30,6 @@ const TOWN_NPCS={
     "standing": "assets/npc/breeding_guide-standing.png",
     "portrait": "assets/npc/breeding_guide-portrait.png",
     "ready": true
-  },
-  "guide": {
-    "name": "旅の案内人",
-    "en": "The town is beside the southern bay.",
-    "ja": "町は南の入り江のそばだよ。",
-    "standing": "assets/npc/guide-standing.png",
-    "portrait": "assets/npc/guide-portrait.png",
-    "ready": false
   },
   "resident": {
     "name": "街の住人",
@@ -62,5 +54,13 @@ const TOWN_NPCS={
     "standing": "assets/npc/adventurer-female-standing.png",
     "portrait": "assets/npc/adventurer-female-portrait.png",
     "ready": false
+  },
+  "travel_guide": {
+    "name": "ロアン · 旅の案内人",
+    "en": "The town is beside the southern bay.",
+    "ja": "町は南の入り江のそばだよ。",
+    "standing": "assets/npc/travel_guide-standing.png",
+    "portrait": "assets/npc/travel_guide-portrait.png",
+    "ready": true
   }
 };
