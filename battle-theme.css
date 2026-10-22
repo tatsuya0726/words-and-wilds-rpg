@@ -1,0 +1,43 @@
+/* Battle visual theme: original monsters, parchment labels and ink-blue spell cards. */
+.in-battle{--battle-ink:#101725;--battle-paper:#eee0b7;--battle-gold:#d7b66c;--battle-rim:#c8ba96;--battle-red:#d96161;--battle-blue:#8fc6d8}
+.in-battle #app{border-color:#dbc89d;border-radius:14px;box-shadow:0 0 0 4px #151d2c,0 0 0 5px #776c51,0 16px 60px #000}
+#app .battle{background:#111924;isolation:isolate}
+#app .battlefield{border:0;background-position:center 60%;box-shadow:inset 0 0 70px #10172566}
+#app .battlefield:after{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,#10172522,transparent 30%,transparent 65%,#101725ad);z-index:0}
+#app .enemy-anchor{z-index:1}
+#app .enemy-anchor .enemy-health{background:#111827e8;border:1px solid #d7c69b;border-radius:3px 12px 3px 12px;color:#f4ead4;box-shadow:0 3px 0 #080e18aa,0 0 0 3px #172231a8;font-variant-numeric:tabular-nums}
+#app .enemy-label{display:block;background:linear-gradient(100deg,#cdb780,#f2e2b7 45%,#d5bf89);color:#29263a;font-weight:700;letter-spacing:.06em;clip-path:polygon(3% 0,98% 3%,100% 88%,95% 100%,1% 94%,0 18%);padding:2px 12px;margin:-8px -4px 4px;line-height:1.3}
+#app .enemy-anchor .enemy{filter:drop-shadow(0 12px 9px #0b12194d)}
+.in-battle progress{appearance:none;-webkit-appearance:none;border:1px solid #493132;border-radius:3px;overflow:hidden;background:#251f2b}
+.in-battle progress::-webkit-progress-bar{background:#281f2b}.in-battle progress::-webkit-progress-value{background:linear-gradient(#f29a81,#d55859 55%,#a83249)}.in-battle progress::-moz-progress-bar{background:#d55859}
+#app .party-status.trio{position:relative;z-index:2;border:0;background:linear-gradient(180deg,#162332,#111a2a);box-shadow:0 -2px 0 #bfae84,0 2px 0 #080e17;padding-left:16px;padding-right:16px;gap:10px}
+#app .party-status.trio .team-unit{position:relative;background:linear-gradient(130deg,#253548,#111b2d 65%);border:1px solid #b7aa8a;border-radius:3px 13px 3px 13px;color:#f0e6ce;box-shadow:inset 0 0 0 2px #0c1524,0 2px 3px #0008}
+#app .party-status.trio .team-unit.acting{border-color:#ffe4a2;background:linear-gradient(120deg,#47534d,#1c2b39 65%);box-shadow:inset 0 0 0 2px #101b2a,0 0 0 1px #d7b66c}
+#app .party-status.trio .team-unit .unit-name{font-weight:700;color:#f0dbab;overflow-wrap:anywhere;line-height:1.2}
+#app .party-status.trio .team-unit img{padding:2px;background:radial-gradient(ellipse,#d2b57145,transparent 70%);filter:drop-shadow(0 2px 2px #0008)}
+#app .party-status.trio .team-unit .health small{color:#a9cbd5;letter-spacing:.03em}
+#app .battle-window,#app.portrait-frame .battle-window{position:relative;background:radial-gradient(ellipse at 50% 0,#283345,#121a2a 75%);border:2px solid #cfbf96;border-radius:5px 15px 5px 15px;box-shadow:inset 0 0 0 3px #0a111d,inset 0 0 0 4px #766f60,0 2px 5px #0009;padding:14px 18px;margin:7px 9px}
+#app .battle-window:before,#app .battle-window:after{content:'✧';position:absolute;color:#e6c98b;font-size:14px;line-height:1;pointer-events:none;z-index:1}#app .battle-window:before{left:4px;top:3px}#app .battle-window:after{right:4px;bottom:3px}
+#app .command-heading h2{color:#f3e2b6;letter-spacing:.06em;text-shadow:0 2px #0007;font-family:Georgia,'Yu Mincho',serif}
+#app .battle-panel .spell-grid{gap:12px;padding:3px 1px}
+#app .battle-panel .spell{position:relative;isolation:isolate;text-align:left;border:1px solid #d2bc86;border-radius:4px 10px 4px 10px;background:linear-gradient(140deg,#344252,#152031 70%);box-shadow:inset 0 0 0 3px #0c1624,inset 0 0 0 4px #8e805f,0 3px 0 #070d16;color:#fff0c9;padding:15px 12px 12px;min-height:82px;font-weight:700;letter-spacing:.04em}
+#app .battle-panel .spell:before{content:'✧';display:inline-grid;place-items:center;margin-right:7px;color:#efd99d;font-size:23px;line-height:1;vertical-align:middle;text-shadow:0 0 12px #e6c86d77}
+#app .battle-panel .spell[data-arg='wind']:before{content:'≋';color:#b6dfcf}#app .battle-panel .spell[data-arg='star']:before{content:'✦';color:#d8c4ff}#app .battle-panel .spell[data-arg='heal']:before{content:'❧';color:#9edbcc}
+#app .battle-panel .spell span{border-top:1px solid #d7b66c55;padding-top:7px;margin-top:10px;color:#cbd6dc;letter-spacing:0;font-weight:400}
+#app .battle-panel button{transition:background-color .15s,border-color .15s,box-shadow .15s}
+#app .battle-panel button:hover:not(:disabled){border-color:#ffe5a6;background-color:#34485b;box-shadow:inset 0 0 0 2px #e1c78655,0 0 10px #d8b66a22;transform:none}
+.in-battle button:focus-visible{outline:3px solid #fff1b8;outline-offset:2px;box-shadow:0 0 0 5px #101725!important}
+#app .battle-panel .choices button{border:1px solid #b8aa88;border-radius:3px 10px 3px 10px;color:#fff1ce;background:linear-gradient(115deg,#2b3b4f,#172438);box-shadow:inset 0 0 0 2px #0d1726;font-weight:600;letter-spacing:.01em}
+#app .battle-panel .question-copy{padding:7px 10px;border-left:3px solid #c9ae70;background:linear-gradient(90deg,#d8b96b14,transparent)}
+#app .battle-panel .question{color:#fff5d9;font-family:Georgia,'Yu Mincho',serif}#app .battle-panel .cue{color:#c3cdd7}
+#app .battle-panel .quiet,#app .scout-actions button{border:1px solid #b9aa85;border-radius:3px 9px 3px 9px;background:#172437;color:#eadbb7;box-shadow:inset 0 0 0 2px #0d1725}
+#app .scout-actions button[data-action='battleItems']:before{content:'◇ ';color:#b9d8db}#app .scout-actions button[data-action='scoutPreview']:before{content:'✧ ';color:#e7cb88}
+#app .scout-rate{color:#e5d09b}#app .command-bottom{padding-top:3px}#app .command-bottom small{color:#abb9c8}
+#app .battle-panel .primary{background:linear-gradient(#eddaaa,#c7a361);color:#172132;border:1px solid #f4e4bd;border-radius:3px 10px 3px 10px;font-weight:700;box-shadow:inset 0 0 0 2px #785e3a,0 3px #080e17}
+#app .battle-panel .result{background:#122c35;border:1px solid #94c5b3;border-radius:3px 10px 3px 10px;color:#d9f4df}#app .battle-panel .result.wrong{background:#312735;border-color:#b89a95;color:#f2ded2}
+#app .battle-panel .answer-line{color:#d3c7b0}.in-battle dialog{background:linear-gradient(135deg,#263447,#111a2a);border:2px solid #d5c39a;border-radius:5px 16px 5px 16px;box-shadow:inset 0 0 0 3px #101725,0 15px 70px #000a;color:#f0e4c9}.in-battle dialog h2{color:#f2dcaa}.in-battle dialog button{border-color:#bca777;color:#f1dfb6;background:#1c2b40}
+@container(min-height:700px) and (min-width:900px){#app .battle-panel .spell{min-height:112px;padding:20px 18px;font-size:19px}#app .battle-panel .spell:before{font-size:34px}#app .battle-panel .spell span{font-size:12px}}
+@container(max-width:600px){#app .party-status.trio{gap:5px;padding-left:5px;padding-right:5px}#app .battle-window,#app.portrait-frame .battle-window{padding:12px 11px;margin:6px}#app .battle-panel .spell-grid{gap:9px}#app .battle-panel .spell{min-height:70px;padding:10px 8px;font-size:14px}#app .battle-panel .spell:before{font-size:19px;margin-right:4px}#app .battle-panel .spell span{font-size:10px;padding-top:5px;margin-top:6px}#app .battle-panel .question-copy{padding:4px 7px}}
+@container(max-height:500px){#app .battle-window,#app.portrait-frame .battle-window{padding:7px 10px;margin:3px 5px}#app .battle-panel .spell-grid{padding:0;gap:7px}#app .battle-panel .spell{min-height:35px;padding:5px 7px;font-size:12px}#app .battle-panel .spell:before{font-size:15px;margin-right:4px}#app .battle-panel .spell span{padding:0;margin:3px 0 0;border:0;font-size:9px}#app .battle-panel .question-copy{padding:1px 5px;border-left-width:2px}#app .enemy-label{padding:1px 7px;margin:-3px -2px 2px}#app .battle-window:before,#app .battle-window:after{font-size:9px}#app .party-status.trio{gap:7px;padding-left:9px;padding-right:9px}#app .battle-panel .command-bottom{padding:0}}
+@container(max-height:320px){#app .battle-window,#app.portrait-frame .battle-window{padding:5px 8px;margin:2px 4px}#app .battle-panel .spell{min-height:28px;font-size:11px;padding:4px 6px}#app .battle-panel .spell:before{font-size:12px}#app .battle-panel .spell span{display:none}#app .battle-panel .question-copy{padding:0 4px}#app .party-status.trio{gap:5px}}
+@media(prefers-reduced-motion:reduce){.in-battle button{transition:none!important}}
