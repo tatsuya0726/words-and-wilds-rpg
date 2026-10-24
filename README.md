@@ -33,3 +33,6 @@ HTML/CSS/JavaScript、Phaserのローカル配布版を使用。外部CDNは不�
 
 Game Studioプラグインの設計・Phaser・プレイテストの手順を使用して制作しました。
 Phaserのライセンスは `vendor/PHASER-LICENSE.md` を参照してください。ゲーム画像・問題等を含む独自コンテンツには、このリポジトリーで追加の再配布許諾を付与していません。
+
+## 2026-10-24: 旧試作版の名称
+表示名は「ことばとモンスター（旧試作版）」。データ・URL・セーブは保持。今後の正式な「ごちゃまぜモンスター」は https://github.com/tatsuya0726/wordbound-realms で開発する。

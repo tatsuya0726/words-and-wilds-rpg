@@ -11,3 +11,5 @@
 #app.portrait-frame .opening-start{bottom:7%}
 .journey-entering .opening-art{transform:scale(1.04);transition:transform .55s ease}
 @media(prefers-reduced-motion:reduce){.journey-entering .opening-art{transform:none;transition:none}}
+
+.legacy-label{display:block;font-size:16px;line-height:1.6;letter-spacing:.1em;color:#fff1c3}

@@ -273,13 +273,13 @@ function beginJourney(){
  },550);
 }
 function openingScreen(){
- document.title='ごちゃまぜモンスター';
+ document.title='ことばとモンスター（旧試作版）';
  document.body.classList.add('opening-mode');
  world(true);
  const overlay=document.createElement('section');
  overlay.id='opening';
- overlay.setAttribute('aria-label','ごちゃまぜモンスターのスタート画面');
- overlay.innerHTML=`<div id="opening-title" hidden><div class="opening-heading"><p>WORDS, WONDERS & MONSTERS</p><h1>ごちゃまぜ<br><span>モンスター</span></h1><p class="opening-sub">ことばでつながる、ふしぎな仲間たち。</p></div><div class="opening-start"><button id="journey-start" data-action="startJourney">スタート <span>→</span></button><p>${state.started?'保存した冒険から再開':'はじめての冒険へ'}</p></div></div><button id="tap-gate" data-action="tapBegin"><span class="tap-emblem">✦</span><strong>タップして開始</strong><small>TAP TO BEGIN</small></button>`;
+ overlay.setAttribute('aria-label','ことばとモンスター（旧試作版）のスタート画面');
+ overlay.innerHTML=`<div id="opening-title" hidden><div class="opening-heading"><p>WORDS, WONDERS & MONSTERS</p><h1>ことばと<br><span>モンスター</span><small class="legacy-label">旧試作版</small></h1><p class="opening-sub">ことばでつながる、ふしぎな仲間たち。</p></div><div class="opening-start"><button id="journey-start" data-action="startJourney">スタート <span>→</span></button><p>${state.started?'保存した冒険から再開':'はじめての冒険へ'}</p></div></div><button id="tap-gate" data-action="tapBegin"><span class="tap-emblem">✦</span><strong>タップして開始</strong><small>TAP TO BEGIN</small></button>`;
  $('#scene').appendChild(overlay);
  OpeningArt.mount(overlay);
  $('#tap-gate').focus();
